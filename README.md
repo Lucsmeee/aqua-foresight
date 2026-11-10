@@ -2,14 +2,15 @@
 
 Plataforma GovTech de **apoio à decisão** para risco de escassez hídrica, com piloto no Distrito Federal (reservatórios **Descoberto** e **Santa Maria**), ENOS/El Niño como eixo de pesquisa e regras jurídicas auditáveis.
 
-> **Status: v0.2.0.** Pipeline ponta a ponta (coleta → processamento → armazenamento → análise → indicadores → página) com execução diária no GitHub Actions. Nada aqui é previsão validada. Nenhum componente emite ato administrativo, declara estado hidrológico oficial ou notifica terceiros. Toda saída é indicativa e exige revisão humana (Especificação v2.0, §2.2 e §7).
+> **Status: v0.3.0.** Pipeline ponta a ponta (coleta → processamento → armazenamento → análise → indicadores → página) com execução diária no GitHub Actions. Nada aqui é previsão validada. Nenhum componente emite ato administrativo, declara estado hidrológico oficial ou notifica terceiros. Toda saída é indicativa e exige revisão humana (Especificação v2.0, §2.2 e §7).
 
 ## Como funciona no GitHub
 
 ```
 GitHub Actions (todo dia 06:41 BRT, ou ao enviar planilha)
   ├─ baixa RONI do NOAA/CPC ............ público, sem chave
-  ├─ lê data/manual/volume/*.csv|xlsx .. exportações do SAR/ANA ou série da ADASA
+  ├─ atualiza série SAR/ANA do DF ...... cota e volume de Descoberto e Santa Maria (API do portal SAR)
+  ├─ lê data/manual/volume/*.csv|xlsx .. planilhas adicionais (ex.: série oficial da ADASA)
   ├─ consulta API ANA HidroWebService .. só se houver secrets ANA_IDENTIFICADOR/ANA_SENHA
   ├─ valida, guarda brutos com SHA-256 em data/raw (commit só quando o conteúdo muda)
   ├─ calcula fases ENOS e enquadramento pela Res. ADASA 56/2025
@@ -32,6 +33,8 @@ Coloque CSV ou XLSX em `data/manual/volume/` (Add file → Upload files). O envi
 |---|---|
 | Esquema de banco (SQLite dev / PostgreSQL 16 testado) | ✅ 8 tabelas, proveniência e versões |
 | Adaptador NOAA/CPC RONI e ONI | ✅ código e testes; download real roda no GitHub Actions |
+| Série diária SAR/ANA do DF desde 1990 (`data/series/`) | ✅ carga histórica e atualização diária |
+| Conversão do Descoberto para a base ADASA | ⚠️ estimativa calibrada em 6 datas (erro ≤ 0,26 p.p.); confirmar com série oficial |
 | Leitor de planilhas de volume útil (SAR/ANA, ADASA) | ✅ CSV e XLSX, validação com motivos de rejeição |
 | Cliente API ANA HidroWebService (telemetria) | ✅ código e testes com servidor simulado; ⚠️ não testado com credencial real; traz **cota**, não volume útil |
 | Fases ENOS (critério CPC: ±0,5 °C por ≥5 estações) | ✅ |
@@ -40,7 +43,6 @@ Coloque CSV ou XLSX em `data/manual/volume/` (Add file → Upload files). O envi
 | Página do pipeline (`web/index.html`) | ✅ lê os JSON publicados; aceita arquivos; demonstração sintética marcada quando não há dados |
 | API FastAPI e CLI `aqua` | ✅ |
 | CI (pytest em SQLite e PostgreSQL/PostGIS) | ✅ |
-| Série histórica de volume útil | ⏳ depende de fonte (ver NEXT_STEPS) |
 | Modelos preditivos A × B | ⏳ |
 
 ## Rodar localmente
@@ -48,7 +50,7 @@ Coloque CSV ou XLSX em `data/manual/volume/` (Add file → Upload files). O envi
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                                   # 51 testes
+pytest                                   # 63 testes
 
 aqua publicar --saida site               # pipeline completo; abra site/index.html com um servidor local
 python -m http.server -d site 8000       # http://localhost:8000

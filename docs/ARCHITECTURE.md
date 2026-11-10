@@ -97,7 +97,8 @@ Migrações: hoje `create_all`; Alembic é a próxima tarefa de infraestrutura (
 | NOAA/CPC probabilidades ENSO | Cenários para 90 dias | A localizar formato estruturado | A investigar |
 | ADASA | Volume útil Descoberto/Santa Maria, estados hidrológicos, atos | A investigar (SIRH; a Res. 56/2025 prevê divulgação de estados, curvas e volumes observados em um sistema de informação — nome a confirmar no texto integral) | A investigar |
 | ANA / HidroWebService | Cota, vazão, chuva telemétricas | API com credencial (e-mail a hidro@ana.gov.br); token por cabeçalhos Identificador/Senha, validade 60 min | Cliente implementado e testado com servidor simulado; não verificado com credencial |
-| ANA / SAR, módulo DF | Volume útil do dia de Descoberto e Santa Maria | Exportação CSV pela interface; sem API documentada; sem histórico do DF no manual v1.1 | Leitor de planilhas implementado |
+| ANA / SAR, módulo DF | Cota, volume (hm³) e % de Descoberto e Santa Maria, diário desde 1990 (esparso no início) | API não documentada `https://www.ana.gov.br/sar/restportal/api/retornaMedicoes` (data MM/dd/yyyy, tipoSistema=4) e `retornaGrafico?codigo=40001/40002`, achada no código do portal | **Em produção** (carga histórica + atualização diária); Descoberto convertido para base ADASA (estimado) |
+| ADASA / SIRH-DF (gis.adasa.df.gov.br) | Série oficial de volume útil | Portal ArcGIS | Inacessível a partir do GitHub Actions (timeout de conexão); fonte oficial para validar a conversão |
 | INMET | Precipitação, temperatura | A investigar | — |
 | Copernicus ERA5 | Reanálise | API CDS com conta | — |
 | NASA SMAP | Umidade do solo | Earthdata com conta | — |

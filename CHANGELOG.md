@@ -2,6 +2,18 @@
 
 Formato inspirado em Keep a Changelog; versionamento semântico.
 
+## [0.3.0] — 2026-11-10
+
+### Adicionado
+- Fonte **ANA · SAR, Distrito Federal** (`ingestion/ana_sar.py`): API `restportal` usada pelo portal do SAR, identificada e verificada com o workflow `Diagnosticar fontes`. `retornaMedicoes` (data em MM/dd/yyyy; devolve a próxima medição disponível quando o dia não tem) e `retornaGrafico` (últimos 5 anos por reservatório, volume em hm³).
+- Série versionada `data/series/sar_df_diario.csv` (cota, volume, capacidade, % SAR) desde 1990, com `sar_df_dias_consultados.txt` para cargas retomáveis.
+- Workflows `carga-historica.yml` e `diagnosticar-fontes.yml`; `scripts/diagnosticar_fontes.py`.
+- `conversao_adasa.py`: Santa Maria usa o % do SAR (igual à ADASA em 5 datas, ≤ 0,12 p.p.); Descoberto convertido para a base ADASA (linear, 6 pontos de calibração, resíduo ≤ 0,26 p.p.) e recalculado pela cota com a curva atual, porque o SAR usa curvas cota-volume diferentes por época. Valores do Descoberto marcados como **estimados**.
+- Página: valor SAR e estimativa ADASA lado a lado; série SAR original no gráfico.
+
+### Corrigido
+- Pipeline diário passa a versionar `data/series` e compartilha o grupo de concorrência `dados` com a carga histórica.
+
 ## [0.2.0] — 2026-11-10
 
 ### Adicionado

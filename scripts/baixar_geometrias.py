@@ -2,8 +2,9 @@
 
 Fontes:
 - IBGE, API de malhas v3 — limite oficial do Distrito Federal (código 53).
-- OpenStreetMap via Overpass API — espelhos d'água dos reservatórios (ODbL, © colaboradores do OSM)
-  e, para a Espanha, limites das províncias por onde passa o sistema Alarcón–Contreras–Tous.
+  (com cópia da malha municipal do IBGE no GitHub como alternativa).
+- OpenStreetMap via Overpass API (com espelhos) — espelhos d'água dos reservatórios (ODbL, © colaboradores do OSM).
+- Províncias da Espanha por onde passa a bacia do Júcar (GeoJSON público no GitHub).
 
 Cada fonte é opcional: se falhar, as demais continuam e a falha é registrada em data/geo/meta.json.
 Uso: python scripts/baixar_geometrias.py [pasta_saida]
@@ -12,13 +13,24 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
 
 IBGE_DF = "https://servicodados.ibge.gov.br/api/v3/malhas/estados/53?formato=application/vnd.geo+json&qualidade=intermediaria"
-OVERPASS = "https://overpass-api.de/api/interpreter"
+# Cópia da malha municipal do IBGE (DF = município 5300108) mantida no GitHub; usada se a API do IBGE não responder.
+IBGE_DF_ESPELHO = "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-53-mun.json"
+ES_PROVINCIAS = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/spain-provinces.geojson"
+PROVINCIAS_JUCAR = {"Cuenca", "Albacete", "València/Valencia", "Teruel", "Castelló/Castellón", "Alacant/Alicante",
+                    "Tarragona", "Murcia"}
+OVERPASS_ESPELHOS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+]
 
 CONSULTAS = {
     "df_reservatorios": """[out:json][timeout:90];
@@ -28,10 +40,6 @@ out geom;""",
     "es_reservatorios": """[out:json][timeout:90];
 (way["natural"="water"]["name"~"Alarc|Contreras|Tous",i](38.90,-2.40,39.85,-0.40);
  relation["natural"="water"]["name"~"Alarc|Contreras|Tous",i](38.90,-2.40,39.85,-0.40););
-out geom;""",
-    "es_provincias": """[out:json][timeout:180];
-area["ISO3166-1"="ES"][admin_level=2]->.es;
-relation["boundary"="administrative"]["admin_level"="6"](area.es)(38.0,-3.2,40.9,0.6);
 out geom;""",
 }
 
@@ -122,31 +130,62 @@ def simplificar_geojson(gj: dict, tol: float) -> dict:
     return gj
 
 
+def _overpass(c: httpx.Client, consulta: str) -> tuple[dict, str]:
+    erros = []
+    for url in OVERPASS_ESPELHOS:
+        for tentativa in range(2):
+            try:
+                r = c.post(url, data={"data": consulta})
+                r.raise_for_status()
+                return r.json(), url
+            except Exception as e:  # noqa: BLE001
+                erros.append(f"{url} #{tentativa + 1}: {type(e).__name__}")
+                time.sleep(5)
+    raise RuntimeError("; ".join(erros))
+
+
 def main(saida: Path) -> int:
     saida.mkdir(parents=True, exist_ok=True)
     meta = {"gerado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"), "fontes": {}}
-    with httpx.Client(timeout=200, headers={"User-Agent": "aqua-foresight/0.5 (pesquisa academica)"}) as c:
+    with httpx.Client(timeout=200, headers={"User-Agent": "aqua-foresight/0.5 (pesquisa academica)"}, follow_redirects=True) as c:
+        erros = []
+        for url, rotulo in ((IBGE_DF, "IBGE — API de malhas v3"),
+                            (IBGE_DF_ESPELHO, "IBGE, malha municipal (cópia tbrugz/geodata-br no GitHub)")):
+            try:
+                r = c.get(url, timeout=60)
+                r.raise_for_status()
+                gj = simplificar_geojson(r.json(), 0.002)
+                (saida / "df_limite.geojson").write_text(json.dumps(gj, separators=(",", ":")), encoding="utf-8")
+                meta["fontes"]["df_limite"] = {"status": "ok", "url": url, "fonte": rotulo, "feicoes": len(gj.get("features", []))}
+                break
+            except Exception as e:  # noqa: BLE001
+                erros.append(f"{url}: {e!r}"[:200])
+        else:
+            meta["fontes"]["df_limite"] = {"status": "falha", "erro": " | ".join(erros)}
         try:
-            r = c.get(IBGE_DF)
+            r = c.get(ES_PROVINCIAS, timeout=120)
             r.raise_for_status()
-            gj = simplificar_geojson(r.json(), 0.002)
-            (saida / "df_limite.geojson").write_text(json.dumps(gj, separators=(",", ":")), encoding="utf-8")
-            meta["fontes"]["df_limite"] = {"status": "ok", "url": IBGE_DF, "fonte": "IBGE — API de malhas v3",
-                                           "feicoes": len(gj.get("features", []))}
+            gj = r.json()
+            gj["features"] = [{"type": "Feature", "properties": {"nome": f["properties"].get("name")}, "geometry": f["geometry"]}
+                              for f in gj["features"] if f["properties"].get("name") in PROVINCIAS_JUCAR]
+            gj = simplificar_geojson(gj, 0.01)
+            (saida / "es_provincias.geojson").write_text(json.dumps(gj, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+            meta["fontes"]["es_provincias"] = {"status": "ok", "url": ES_PROVINCIAS,
+                                               "fonte": "Províncias da Espanha (codeforgermany/click_that_hood, base IGN/CartoDB)",
+                                               "feicoes": len(gj["features"]), "nomes": sorted(f["properties"]["nome"] for f in gj["features"])}
         except Exception as e:  # noqa: BLE001
-            meta["fontes"]["df_limite"] = {"status": "falha", "url": IBGE_DF, "erro": repr(e)[:300]}
+            meta["fontes"]["es_provincias"] = {"status": "falha", "url": ES_PROVINCIAS, "erro": repr(e)[:300]}
         for nome, q in CONSULTAS.items():
             try:
-                r = c.post(OVERPASS, data={"data": q})
-                r.raise_for_status()
-                gj = osm_para_geojson(r.json(), 0.004 if nome == "es_provincias" else 0.0004)
+                dados, url = _overpass(c, q)
+                gj = osm_para_geojson(dados, 0.0004)
                 (saida / f"{nome}.geojson").write_text(json.dumps(gj, separators=(",", ":"), ensure_ascii=False),
                                                        encoding="utf-8")
-                meta["fontes"][nome] = {"status": "ok", "url": OVERPASS, "fonte": "OpenStreetMap (ODbL) via Overpass",
+                meta["fontes"][nome] = {"status": "ok", "url": url, "fonte": "OpenStreetMap (ODbL) via Overpass",
                                         "feicoes": len(gj["features"]),
                                         "nomes": sorted({f["properties"]["nome"] or "?" for f in gj["features"]})}
             except Exception as e:  # noqa: BLE001
-                meta["fontes"][nome] = {"status": "falha", "url": OVERPASS, "erro": repr(e)[:300]}
+                meta["fontes"][nome] = {"status": "falha", "erro": str(e)[:600]}
     (saida / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(meta, ensure_ascii=False, indent=1))
     return 0

@@ -22,7 +22,9 @@ import shutil
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from aqua_foresight import __version__
 from aqua_foresight.config import Settings
+from aqua_foresight.legal import adasa_56_2025 as adasa
 from aqua_foresight.db import init_db, make_engine, make_session_factory
 from aqua_foresight.enso.phases import PontoENOS, classificar_fases
 from aqua_foresight import conversao_adasa
@@ -184,8 +186,9 @@ def etapa_indicadores(volume: dict, hoje: date, max_defasagem: int) -> dict:
     return out
 
 
-def montar_painel(enos: dict | None, volume: dict, indicadores: dict, status: dict) -> dict:
-    """Arquivo compacto para o painel público: séries por reservatório, ENOS recente e indicadores."""
+def montar_painel(enos: dict | None, volume: dict, indicadores: dict, status: dict,
+                  capacidades: dict | None = None) -> dict:
+    """Arquivo compacto para o painel público: séries por reservatório, ENOS completo, normas e indicadores."""
     series = {}
     for res in ("descoberto", "santa_maria"):
         obs = [o for o in volume["obs"] if o["res"] == res]
@@ -199,10 +202,13 @@ def montar_painel(enos: dict | None, volume: dict, indicadores: dict, status: di
     if enos:
         enos_recente = {k: enos[k] for k in ("indicador", "fonte_url", "obtido_em", "periodo_base")}
         enos_recente["serie"] = [{k: p[k] for k in ("ano", "estacao", "mes", "valor", "condicao", "episodio", "confirmado", "natureza")}
-                                 for p in enos["serie"][-60:]]
-    return {"gerado_em": _agora(), "series": series, "enos": enos_recente, "indicadores": indicadores,
-            "fontes": status["fontes"], "conversao": {"descoberto": {k: volume.get("conversao", {}).get("descoberto", {}).get(k)
-                                                                       for k in ("A", "B")}}}
+                                 for p in enos["serie"]]
+    normas = {"adasa_56_2025": {"tabela_1": {r: {e: list(v) for e, v in est.items()} for r, est in adasa.TABELA_1.items()},
+                                "condicoes_de_uso": adasa.CONDICOES_DE_USO, "dispositivos": adasa.DISPOSITIVOS}}
+    return {"gerado_em": _agora(), "versao": __version__, "series": series, "enos": enos_recente,
+            "indicadores": indicadores, "fontes": status["fontes"], "normas": normas,
+            "capacidade_sar_hm3": capacidades or {},
+            "conversao": {"descoberto": {k: volume.get("conversao", {}).get("descoberto", {}).get(k) for k in ("A", "B")}}}
 
 
 def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = True, settings: Settings | None = None) -> dict:
@@ -223,9 +229,18 @@ def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = T
     for nome, conteudo in {"enos.json": enos, "volume.json": volume, "telemetria.json": telemetria,
                            "indicadores.json": indicadores, "status.json": status}.items():
         (dados / nome).write_text(json.dumps(conteudo, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    painel = montar_painel(enos, volume, indicadores, status)
+    capacidades = {}
+    for linha in ana_sar.ler_serie(raiz / "data" / "series" / "sar_df_diario.csv").values():
+        if linha.get("capacidade_hm3"):
+            capacidades[linha["reservatorio"]] = float(linha["capacidade_hm3"])
+    painel = montar_painel(enos, volume, indicadores, status, capacidades)
     painel["espanha"] = espanha
     (dados / "painel.json").write_text(json.dumps(painel, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    geo = raiz / "data" / "geo"
+    if geo.is_dir():
+        (dados / "geo").mkdir(exist_ok=True)
+        for arq in [*geo.glob("*.geojson"), *geo.glob("meta.json")]:
+            shutil.copyfile(arq, dados / "geo" / arq.name)
     for pagina in sorted([*(raiz / "web").glob("*.html"), *(raiz / "web").glob("*.css")]):
         shutil.copyfile(pagina, saida / pagina.name)
     return status

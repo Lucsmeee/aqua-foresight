@@ -1,0 +1,75 @@
+name: Pipeline diário
+
+# Coleta das fontes oficiais, processamento, indicadores e publicação no GitHub Pages.
+# Requer, uma única vez: Settings → Pages → Source = "GitHub Actions".
+# Opcional: secrets ANA_IDENTIFICADOR e ANA_SENHA (API HidroWebService da ANA).
+
+on:
+  schedule:
+    - cron: "41 9 * * *" # 06:41 em Brasília (UTC−3)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "data/manual/**"
+      - "web/**"
+      - "src/**"
+      - ".github/workflows/pipeline-diario.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pipeline-diario
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Executar pipeline
+        env:
+          ANA_IDENTIFICADOR: ${{ secrets.ANA_IDENTIFICADOR }}
+          ANA_SENHA: ${{ secrets.ANA_SENHA }}
+        run: |
+          aqua publicar --saida site | tee resumo.txt
+          {
+            echo "## Fontes"
+            cat resumo.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Versionar novos brutos (só quando o conteúdo muda)
+        run: |
+          git config user.name "aqua-foresight-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/raw
+          if git diff --cached --quiet; then
+            echo "Sem dados brutos novos."
+          else
+            git commit -m "dados: novos brutos $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publicar:
+    needs: coletar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

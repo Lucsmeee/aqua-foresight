@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: aqua
+      POSTGRES_USER: aqua
+      POSTGRES_PASSWORD: ${AQUA_DB_PASSWORD:-aqua_dev_only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqua -d aqua"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      AQUA_DATABASE_URL: postgresql+psycopg://aqua:${AQUA_DB_PASSWORD:-aqua_dev_only}@db:5432/aqua
+      AQUA_RAW_DIR: /app/data/raw
+    ports:
+      - "8000:8000"
+    volumes:
+      - rawdata:/app/data/raw
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  rawdata:

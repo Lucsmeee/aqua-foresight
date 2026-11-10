@@ -1,0 +1,44 @@
+name: Carga histórica
+
+# Execução manual. Baixa a série diária do SAR/ANA (DF) e o RONI, e versiona os dados.
+on:
+  workflow_dispatch:
+    inputs:
+      inicio:
+        description: "Data inicial (AAAA-MM-DD)"
+        default: "1990-01-01"
+      max_dias:
+        description: "Máximo de dias consultados nesta execução"
+        default: "20000"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dados
+  cancel-in-progress: false
+
+jobs:
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: RONI (NOAA/CPC)
+        run: aqua publicar --saida /tmp/site
+      - name: SAR/ANA diário
+        run: python scripts/carga_historica_sar.py --inicio "${{ github.event.inputs.inicio }}" --max-dias "${{ github.event.inputs.max_dias }}"
+      - name: Versionar dados
+        if: always()
+        run: |
+          git config user.name "aqua-foresight-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/raw data/series
+          if git diff --cached --quiet; then echo "Nada novo."; else
+            git commit -m "dados: carga histórica SAR/ANA e RONI $(date -u +%Y-%m-%d)"
+            git pull --rebase origin main && git push
+          fi

@@ -31,7 +31,7 @@ PADRAO = [
     "https://www.ana.gov.br/sar/",
 ]
 
-CHAVES = re.compile(r"reserv|descoberto|santa|barragem|sar|dashboard|arcgis|rest/services|csv|xls|json|download|serie|histor|nivel|volume|monitor", re.I)
+CHAVES = re.compile(r"\.pdf|informe|reserv|descoberto|santa|barragem|sar|dashboard|arcgis|rest/services|csv|xls|json|download|serie|histor|nivel|volume|monitor", re.I)
 
 
 def resumir_json(dados: object) -> None:
@@ -75,9 +75,14 @@ def listar_mdb(conteudo: bytes) -> None:
             print(f"    linhas: {len(saida) - 1}")
             for linha in saida[:6]:
                 print("    ", linha[:200])
-            juc = [l for l in saida if "car" in l.lower() and ("jucar" in l.lower() or "júcar" in l.lower())][:5]
-            for linha in juc:
-                print("    júcar:", linha[:200])
+            import csv as _csv
+
+            nomes = {}
+            for row in _csv.reader(saida[1:]):
+                if len(row) > 3 and row[0].lower().replace("ú", "u") == "jucar":
+                    nomes.setdefault(row[1], row[3])
+            for n, cap in sorted(nomes.items()):
+                print(f"    represa júcar: {n!r} capacidade {cap}")
 
 
 def listar_pdf(conteudo: bytes, max_chars: int = 9000) -> None:

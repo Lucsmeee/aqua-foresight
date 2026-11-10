@@ -45,6 +45,13 @@ def resumir_json(dados: object) -> None:
         for s in dados.get("services", [])[:200]:
             print(f"  · {s.get('type')}: {s.get('name')}")
         return
+    if isinstance(dados, dict):  # estrutura: chaves, tamanhos, primeiros e últimos itens
+        for k, v in dados.items():
+            if isinstance(v, list):
+                print(f"  {k}: lista[{len(v)}] primeiros={json.dumps(v[:2], ensure_ascii=False)} últimos={json.dumps(v[-2:], ensure_ascii=False)}")
+            else:
+                print(f"  {k}: {json.dumps(v, ensure_ascii=False)[:300]}")
+        return
     texto = json.dumps(dados, ensure_ascii=False)
     print("  json:", texto[:1500])
 

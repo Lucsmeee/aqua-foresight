@@ -63,19 +63,20 @@ def atualizar_chj(pasta: Path, meses: list[str]) -> dict:
     st = {"id": "chj_pes", "nome": "CHJ · Informe mensal de seca e escassez (PES)", "url": es.URL_CHJ.format(aamm="AAMM"),
           "verificado_em": _agora()}
     lidos, ausentes, erros = [], [], []
-    for aamm in sorted(meses):
+    for aamm in [*sorted(meses), None]:  # None = informe mais recente (endereço fixo), lido por último
         try:
             pdf = es.baixar_informe(aamm)
             if pdf is None:
-                ausentes.append(aamm)
+                ausentes.append(aamm or "atual")
                 continue
             r = es.parse_informe_chj(es._texto_pdf(pdf))
             if not r["iee_ute"]:
                 erros.append(f"{aamm}: tabela não reconhecida")
                 continue
+            mes = r["mes_referencia"]
+            aamm = aamm or f"{mes[2:4]}{mes[5:7]}"
             for x in r["iee_ute"]:
                 atuais[(x["mes"], x["ute"])] = {**x, "informe": aamm}
-            mes = r["mes_referencia"]
             for chave in ("global_escasez", "global_sequia", "ve07"):
                 if r.get(chave) is not None:
                     atuais[(mes, chave)] = {"mes": mes, "ute": chave, "nome": chave, "iee": r[chave], "informe": aamm}

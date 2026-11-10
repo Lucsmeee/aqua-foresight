@@ -36,8 +36,10 @@ from pathlib import Path
 URL_MITECO = ("https://www.miteco.gob.es/content/dam/miteco/es/agua/temas/evaluacion-de-los-recursos-hidricos/"
               "boletin-hidrologico/Historico-de-embalses/BD-Embalses.zip")
 URL_CHJ = "https://www.chj.es/es-es/medioambiente/gestionsequia/Documents/Informes%20Seguimiento/Informe_Sequias_{aamm}.pdf"
+# Endereço fixo do informe mais recente (é o único listado em .../Paginas/InformesdeSeguimiento.aspx)
+URL_CHJ_ATUAL = "https://www.chj.es/es-es/medioambiente/gestionsequia/Documents/Informes%20Seguimiento/InformeSequias.pdf"
 TABELA_MDB = "T_Datos Embalses 1988-2026"
-SISTEMA_ACT = ("Alarcón", "Contreras", "Tous")  # indicador VE07 do PES do Júcar
+SISTEMA_ACT = ("Alarcón", "Contreras", "Tous")  # indicador VE07 do PES do Júcar; no MITECO: "Tous - La Ribera"
 MESES_ES = {"ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6, "jul": 7, "ago": 8, "sep": 9, "oct": 10, "nov": 11, "dic": 12}
 UTES = {"01": "Cenia-Maestrazgo", "02": "Mijares-Plana de Castellón", "03": "Palancia-Los Valles", "04": "Turia",
         "05": "Júcar", "06": "Serpis", "07": "Marina Alta", "08": "Marina Baja", "09": "Vinalopó-Alacantí"}
@@ -83,7 +85,7 @@ def extrair_csv_do_zip(conteudo_zip: bytes) -> str:
 def agregar_jucar(csv_texto: str) -> list[dict]:
     """Soma semanal para a demarcação do Júcar e para o sistema Alarcón+Contreras+Tous."""
     acc: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0.0, 0.0, 0])
-    alvo = {_norm(n) for n in SISTEMA_ACT}
+    alvo = tuple(_norm(n) for n in SISTEMA_ACT)
     for row in csv.DictReader(io.StringIO(csv_texto)):
         if _norm(row["AMBITO_NOMBRE"]) != "jucar":
             continue
@@ -99,7 +101,7 @@ def agregar_jucar(csv_texto: str) -> list[dict]:
         cap, vol = _num(row["AGUA_TOTAL"]), _num(row["AGUA_ACTUAL"])
         if cap is None or vol is None or cap <= 0:
             continue
-        for chave in ("demarcacion", *(["sistema_act"] if _norm(row["EMBALSE_NOMBRE"]) in alvo else [])):
+        for chave in ("demarcacion", *(["sistema_act"] if _norm(row["EMBALSE_NOMBRE"]).startswith(alvo) else [])):
             a = acc[(d, chave)]
             a[0] += cap
             a[1] += vol
@@ -164,10 +166,12 @@ def parse_informe_chj(texto: str) -> dict:
     return out
 
 
-def baixar_informe(aamm: str, timeout: float = 90.0) -> bytes | None:
+def baixar_informe(aamm: str | None, timeout: float = 90.0) -> bytes | None:
+    """Informe de um mês (AAMM) ou, com aamm=None, o mais recente no endereço fixo."""
     import httpx
 
-    r = httpx.get(URL_CHJ.format(aamm=aamm), timeout=timeout, follow_redirects=True,
+    url = URL_CHJ_ATUAL if aamm is None else URL_CHJ.format(aamm=aamm)
+    r = httpx.get(url, timeout=timeout, follow_redirects=True,
                   headers={"User-Agent": "aqua-foresight/0.4 (pesquisa academica)"})
     if r.status_code == 404:
         return None

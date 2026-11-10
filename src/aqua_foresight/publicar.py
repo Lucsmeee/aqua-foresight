@@ -226,7 +226,7 @@ def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = T
     painel = montar_painel(enos, volume, indicadores, status)
     painel["espanha"] = espanha
     (dados / "painel.json").write_text(json.dumps(painel, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    for pagina in sorted((raiz / "web").glob("*.html")):
+    for pagina in sorted([*(raiz / "web").glob("*.html"), *(raiz / "web").glob("*.css")]):
         shutil.copyfile(pagina, saida / pagina.name)
     return status
 

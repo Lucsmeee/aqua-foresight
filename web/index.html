@@ -8,148 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-/* Layout: painel de leitura rápida — frase-resumo → dois reservatórios lado a lado → histórico com faixas → El Niño → como ler. */
-:root {
-  --bg: #eef4f3;
-  --surface: #ffffff;
-  --ink: #0d2a30;
-  --muted: #557075;
-  --line: #d6e2e1;
-  --water: #1b7fa3;
-  --water-deep: #0f5470;
-  --water-light: #cfe8f1;
-  --verde: #2b8a57;
-  --amarelo: #c99400;
-  --vermelho: #c6422c;
-  --quente: #d55a2a;
-  --frio: #2f7fb6;
-  --font-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
-  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0b1c20; --surface: #12292e; --ink: #e4eff0; --muted: #94adb1; --line: #24434a;
-    --water: #46b3d9; --water-deep: #2a86a8; --water-light: #173d49;
-    --verde: #5cc48a; --amarelo: #e6bd3d; --vermelho: #ef7a63; --quente: #f08a5d; --frio: #6cb0e3;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0b1c20; --surface: #12292e; --ink: #e4eff0; --muted: #94adb1; --line: #24434a;
-  --water: #46b3d9; --water-deep: #2a86a8; --water-light: #173d49;
-  --verde: #5cc48a; --amarelo: #e6bd3d; --vermelho: #ef7a63; --quente: #f08a5d; --frio: #6cb0e3;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 var(--font-body); }
-a { color: var(--water-deep); }
-:root[data-theme="dark"] a { color: var(--water); }
-a:focus-visible, button:focus-visible { outline: 3px solid var(--water); outline-offset: 2px; border-radius: 4px; }
-h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.1; text-wrap: balance; }
-p { margin: 0; }
-.wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-
-/* topo */
-.topo { padding: 18px 0; }
-.topo .wrap { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.marca { display: flex; align-items: center; gap: 10px; font: 700 1.05rem var(--font-display); color: var(--ink); text-decoration: none; }
-.gota { width: 26px; height: 26px; }
-.topo nav { display: flex; gap: 16px; font-size: 0.92rem; }
-
-/* resumo */
-.resumo { padding: 26px 0 30px; }
-.resumo .data { font-size: 0.92rem; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
-.resumo h1 { font-size: clamp(2rem, 5vw, 3.3rem); font-weight: 800; margin: 8px 0 12px; max-width: 22ch; }
-.resumo h1 .tom { color: var(--verde); }
-.resumo h1 .tom.amarelo { color: var(--amarelo); }
-.resumo h1 .tom.vermelho { color: var(--vermelho); }
-.resumo .sub { font-size: 1.1rem; color: var(--muted); max-width: 62ch; }
-
-/* reservatórios */
-.reservatorios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-@media (max-width: 760px) { .reservatorios { grid-template-columns: 1fr; } }
-.res { background: var(--surface); border-radius: 18px; padding: 22px; display: grid; grid-template-columns: 170px 1fr; gap: 22px; align-items: center; box-shadow: 0 1px 0 var(--line); }
-@media (max-width: 420px) { .res { grid-template-columns: 1fr; } .res svg { max-width: 160px; } }
-.res h2 { font-size: 1.45rem; font-weight: 700; }
-.res .abastece { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
-.res .pct { font: 800 3.4rem/1 var(--font-display); font-variant-numeric: tabular-nums; margin-top: 12px; letter-spacing: -0.02em; }
-.res .pct small { font-size: 1.3rem; font-weight: 700; color: var(--muted); margin-left: 2px; }
-.res .rotulo { color: var(--muted); font-size: 0.9rem; }
-.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 0.92rem; margin: 12px 0 10px; }
-.chip::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
-.chip.verde { color: var(--verde); background: color-mix(in srgb, var(--verde) 13%, transparent); }
-.chip.amarelo { color: var(--amarelo); background: color-mix(in srgb, var(--amarelo) 16%, transparent); }
-.chip.vermelho { color: var(--vermelho); background: color-mix(in srgb, var(--vermelho) 14%, transparent); }
-.res ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.95rem; }
-.res li b { font-variant-numeric: tabular-nums; }
-.nota { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
-.tanque { width: 100%; height: auto; display: block; }
-.tanque .agua { fill: var(--water); }
-.tanque .agua-topo { fill: var(--water-deep); }
-.tanque .vidro { fill: var(--water-light); }
-.tanque .borda { fill: none; stroke: var(--ink); stroke-opacity: 0.25; stroke-width: 2; }
-.tanque .marca-a { stroke: var(--amarelo); stroke-width: 2.5; stroke-dasharray: 6 4; }
-.tanque .marca-v { stroke: var(--vermelho); stroke-width: 2.5; stroke-dasharray: 6 4; }
-.tanque text { font: 700 11.5px var(--font-body); }
-.tanque .ta { fill: var(--amarelo); } .tanque .tv { fill: var(--vermelho); }
-
-/* seções */
-section.bloco { margin-top: 44px; }
-.bloco > header { display: flex; justify-content: space-between; align-items: end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-.bloco h2 { font-size: 1.7rem; font-weight: 700; }
-.bloco .intro { color: var(--muted); max-width: 64ch; margin-top: 6px; }
-.painel { background: var(--surface); border-radius: 18px; padding: 20px; box-shadow: 0 1px 0 var(--line); }
-.botoes { display: flex; gap: 6px; flex-wrap: wrap; }
-.botoes button { font: 600 0.9rem var(--font-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
-.botoes button:hover { border-color: var(--water); }
-.botoes button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-.grafico { position: relative; height: 340px; }
-.legenda { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); margin-top: 12px; }
-.legenda span { display: inline-flex; align-items: center; gap: 7px; }
-.legenda i { width: 16px; height: 12px; border-radius: 3px; display: inline-block; }
-.dica { font-size: 0.9rem; color: var(--muted); margin-top: 8px; }
-
-/* anos anteriores */
-.anos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-@media (max-width: 760px) { .anos { grid-template-columns: 1fr; } }
-.anos h3 { font-size: 1.1rem; margin-bottom: 10px; }
-.barra { display: grid; grid-template-columns: 46px 1fr 44px; gap: 10px; align-items: center; font-size: 0.9rem; padding: 3px 0; font-variant-numeric: tabular-nums; }
-.barra .trilho { height: 12px; background: var(--water-light); border-radius: 6px; overflow: hidden; }
-.barra .cheio { height: 100%; background: var(--water); border-radius: 6px; }
-.barra.atual { font-weight: 700; }
-.barra.atual .cheio { background: var(--water-deep); }
-.barra .ano { color: var(--muted); }
-
-/* El Niño */
-.enos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; }
-@media (max-width: 760px) { .enos { grid-template-columns: 1fr; } }
-.enos .valor { font: 800 3rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
-.enos .valor small { font-size: 1.1rem; color: var(--muted); font-weight: 700; }
-.enos .fase { font: 700 1.25rem var(--font-display); margin: 8px 0; }
-.escala text { font: 600 11px var(--font-body); fill: var(--muted); }
-.escala .lbl { font-weight: 700; }
-
-/* cores */
-.cores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-@media (max-width: 760px) { .cores { grid-template-columns: 1fr; } }
-.cor { background: var(--surface); border-radius: 14px; padding: 16px 18px; border-top: 6px solid; box-shadow: 0 1px 0 var(--line); }
-.cor h3 { font-size: 1.1rem; margin-bottom: 6px; }
-.cor p { font-size: 0.93rem; color: var(--muted); }
-.cor.verde { border-color: var(--verde); } .cor.amarelo { border-color: var(--amarelo); } .cor.vermelho { border-color: var(--vermelho); }
-
-footer { margin: 56px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 0.88rem; color: var(--muted); display: grid; gap: 10px; }
-.erro { background: var(--surface); border-left: 5px solid var(--amarelo); padding: 16px; border-radius: 10px; }
-@media (prefers-reduced-motion: no-preference) { .tanque .agua, .tanque .agua-topo { transition: y 0.8s ease, height 0.8s ease; } }
-</style>
+<link rel="stylesheet" href="estilo.css">
 </head>
 <body>
 
 <div class="topo"><div class="wrap">
   <a class="marca" href="./"><svg class="gota" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.6 6.5 8.3 6.5 11.6A6.5 6.5 0 0 1 5.5 14.1C5.5 10.8 8.4 7.1 12 2.5z" fill="var(--water)"/></svg>Aqua Foresight</a>
-  <nav><a href="#historico">Histórico</a><a href="#elnino">El Niño</a><a href="tecnico.html">Detalhes técnicos</a></nav>
+  <nav><a href="#historico">Histórico</a><a href="#elnino">El Niño</a><a href="comparacao.html">Brasil × Espanha</a><a href="tecnico.html">Detalhes técnicos</a></nav>
 </div></div>
 
 <main class="wrap">
@@ -205,6 +70,14 @@ footer { margin: 56px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
       </div>
       <div class="grafico" style="height:230px"><canvas id="grafEnos" role="img" aria-label="Índice RONI nos últimos cinco anos"></canvas></div>
     </div>
+  </section>
+
+  <section class="bloco" id="espanha">
+    <header><div><h2>E na Espanha?</h2><p class="intro">O projeto compara o DF com a bacia do rio Júcar (Valência), que também depende de grandes reservatórios e tem regras formais para seca.</p></div></header>
+    <a class="painel chamada" href="comparacao.html">
+      <div id="esResumo"><b>Júcar hoje</b><span class="rotulo">Carregando…</span></div>
+      <span class="seta">Ver comparação completa →</span>
+    </a>
   </section>
 
   <section class="bloco">
@@ -364,6 +237,17 @@ function render() {
 
   graficoVolume();
   renderEnos();
+  renderEspanhaResumo();
+}
+
+function renderEspanhaResumo() {
+  const E = P.espanha; const alvo = $("esResumo"); if (!E) { alvo.replaceChildren(el("b", { text: "Júcar" }), el("span", { class: "rotulo", text: "Dados ainda não coletados." })); return; }
+  const act = E.series.sistema_act, iee = E.iee["05"];
+  const partes = [el("b", { text: "Júcar hoje" })];
+  if (act && act.v.length) partes.push(el("span", {}, "Reservatórios Alarcón, Contreras e Tous: ", el("b", { text: `${fmt(act.v.at(-1))}%` }), ` (semana de ${act.d.at(-1).split("-").reverse().join("/")})`));
+  if (iee && iee.v.length) { const v = iee.v.at(-1); const f = v >= 0.5 ? "Normalidade" : v >= 0.3 ? "Pré-alerta" : v >= 0.15 ? "Alerta" : "Emergência";
+    partes.push(el("span", {}, "Índice de escassez da unidade Júcar: ", el("b", { text: fmt(v, 2) }), ` · faixa de ${f} (${iee.m.at(-1).split("-").reverse().join("/")})`)); }
+  alvo.replaceChildren(...partes);
 }
 
 function graficoVolume() {

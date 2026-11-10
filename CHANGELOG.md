@@ -2,6 +2,15 @@
 
 Formato inspirado em Keep a Changelog; versionamento semântico.
 
+## [0.4.0] — 2026-11-10
+
+### Adicionado
+- Comparação Brasil × Espanha com a bacia do **Júcar** (decisão D-02).
+- Fontes: MITECO, histórico semanal de reservas desde 1988 (`BD-Embalses.zip`, Access lido com mdbtools); CHJ, informe mensal de seca e escassez (endereço fixo do mais recente + arquivos por mês), com o IEE das 9 UTE, os indicadores globais e o VE07.
+- Séries `data/series/es_jucar_semanal.csv` (bacia e sistema Alarcón–Contreras–Tous) e `es_jucar_pes_mensal.csv`.
+- Página `web/comparacao.html`: situação lado a lado numa régua comum, volume ao longo do tempo, IEE mês a mês com faixas e quadro de regras (quem decide, norma, indicador, níveis, declaração formal).
+- Painel ganha o bloco "E na Espanha?"; estilos em `web/estilo.css`; workflow `carga-espanha.yml`.
+
 ## [0.3.1] — 2026-11-10
 
 ### Alterado

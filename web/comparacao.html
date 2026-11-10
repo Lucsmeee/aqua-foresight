@@ -234,7 +234,7 @@ function grafVolume() {
   graf.vol = new Chart($("grafVol"), { type: "line", data: { datasets: ds }, options: { responsive: true, maintainAspectRatio: false, animation: false,
     interaction: { mode: "nearest", axis: "x", intersect: false },
     plugins: { legend: { display: false }, tooltip: { callbacks: { title: it => br(new Date(it[0].parsed.x).toISOString().slice(0, 10)), label: it => ` ${it.dataset.label}: ${fmt(it.parsed.y)}%` } } },
-    scales: { x: { type: "linear", min: ini, max: fim, grid: { display: false }, ticks: { color: css("--muted"), maxTicksLimit: 10, callback: v => String(new Date(v).getUTCFullYear()) } },
+    scales: { x: { type: "linear", min: ini, max: fim, grid: { display: false }, ticks: { color: css("--muted"), maxTicksLimit: anos && anos <= 5 ? 8 : 10, callback: v => { const d = new Date(v); return anos && anos <= 5 ? MESES[d.getUTCMonth()].slice(0, 3) + "/" + String(d.getUTCFullYear()).slice(2) : String(d.getUTCFullYear()); } } },
               y: { min: 0, max: 100, grid: { color: css("--line") }, ticks: { color: css("--muted"), stepSize: 25, callback: v => v + "%" } } } } });
   // leitura automática: amplitude anual média nos anos completos do período
   const amp = (d, v) => { const por = {}; d.forEach((x, i) => { const a = x.slice(0, 4); if (tOf(x) >= ini && v[i] != null) (por[a] ||= []).push(v[i]); });

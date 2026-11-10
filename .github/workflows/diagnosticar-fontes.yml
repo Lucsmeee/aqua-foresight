@@ -1,0 +1,27 @@
+name: Diagnosticar fontes
+
+# Execução manual: testa acesso e formato das fontes externas antes de codificar adaptadores.
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "URLs separadas por espaço (vazio = lista padrão)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  diagnosticar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install httpx
+      - name: Diagnóstico
+        env:
+          URLS: ${{ github.event.inputs.urls }}
+        run: python scripts/diagnosticar_fontes.py $URLS

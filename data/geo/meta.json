@@ -1,0 +1,25 @@
+{
+ "gerado_em": "2026-11-10T20:55:57+00:00",
+ "fontes": {
+  "df_limite": {
+   "status": "falha",
+   "url": "https://servicodados.ibge.gov.br/api/v3/malhas/estados/53?formato=application/vnd.geo+json&qualidade=intermediaria",
+   "erro": "ConnectTimeout('[Errno 110] Connection timed out')"
+  },
+  "df_reservatorios": {
+   "status": "falha",
+   "url": "https://overpass-api.de/api/interpreter",
+   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
+  },
+  "es_reservatorios": {
+   "status": "falha",
+   "url": "https://overpass-api.de/api/interpreter",
+   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
+  },
+  "es_provincias": {
+   "status": "falha",
+   "url": "https://overpass-api.de/api/interpreter",
+   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
+  }
+ }
+}

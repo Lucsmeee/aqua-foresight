@@ -102,6 +102,8 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
         for m in re.finditer(r"(?i)descoberto|santa\s*maria|distrito\s*federal", r.text):
             trecho = re.sub(r"\s+", " ", r.text[max(0, m.start() - 160): m.end() + 160])
             print("  menção:", trecho)
+        for m in re.finditer(r"(?i)restportal|baseurl|url_base|urlBase|window\.location", r.text):
+            print("  api:", re.sub(r"\s+", " ", r.text[max(0, m.start() - 250): m.end() + 250]))
         for m in re.findall(r"acessar\([^)]*\)", r.text)[:20]:
             print("  js:", m)
         links = sorted(set(re.findall(r"""(?:href|src|action)=["']([^"'#]+)["']""", r.text)))

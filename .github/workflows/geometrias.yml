@@ -1,0 +1,33 @@
+name: Geometrias do mapa
+
+# Execução manual: limite do DF (IBGE) e espelhos d'água/províncias (OpenStreetMap) para o Mapa de Bacias.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dados-geo
+  cancel-in-progress: false
+
+jobs:
+  geo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install httpx
+      - run: python scripts/baixar_geometrias.py data/geo
+      - name: Versionar geometrias
+        run: |
+          git config user.name "aqua-foresight-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/geo
+          if git diff --cached --quiet; then echo "Nada novo."; else
+            git commit -m "dados: geometrias do mapa (IBGE, OSM) $(date -u +%Y-%m-%d)"
+            for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+          fi

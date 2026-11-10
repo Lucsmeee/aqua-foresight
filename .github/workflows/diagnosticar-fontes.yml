@@ -8,6 +8,10 @@ on:
         description: "URLs separadas por espaço (vazio = lista padrão)"
         required: false
         default: ""
+      paginas:
+        description: "Páginas de PDF a mostrar (ex.: 10-14)"
+        required: false
+        default: "1-12"
 
 permissions:
   contents: read
@@ -20,8 +24,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install httpx pypdf
+      - run: |
+          pip install httpx pypdf
+          sudo apt-get install -y -qq mdbtools > /dev/null
       - name: Diagnóstico
         env:
           URLS: ${{ github.event.inputs.urls }}
+          DIAG_PAGINAS: ${{ github.event.inputs.paginas }}
+          DIAG_MAX_CHARS: "20000"
         run: python scripts/diagnosticar_fontes.py $URLS

@@ -56,14 +56,42 @@ def resumir_json(dados: object) -> None:
     print("  json:", texto[:1500])
 
 
+def listar_mdb(conteudo: bytes) -> None:
+    """Banco Access: tabelas, esquema e primeiras linhas (requer mdbtools no sistema)."""
+    import shutil
+    import subprocess
+    import tempfile
+
+    if not shutil.which("mdb-tables"):
+        print("  mdb: mdbtools não instalado")
+        return
+    with tempfile.NamedTemporaryFile(suffix=".mdb") as f:
+        f.write(conteudo)
+        f.flush()
+        tabelas = subprocess.run(["mdb-tables", "-1", f.name], capture_output=True, text=True).stdout.split("\n")
+        for tb in [t for t in tabelas if t.strip()]:
+            print(f"  mdb tabela: {tb}")
+            saida = subprocess.run(["mdb-export", f.name, tb], capture_output=True, text=True).stdout.splitlines()
+            print(f"    linhas: {len(saida) - 1}")
+            for linha in saida[:6]:
+                print("    ", linha[:200])
+            juc = [l for l in saida if "car" in l.lower() and ("jucar" in l.lower() or "júcar" in l.lower())][:5]
+            for linha in juc:
+                print("    júcar:", linha[:200])
+
+
 def listar_pdf(conteudo: bytes, max_chars: int = 9000) -> None:
     from io import BytesIO
 
     from pypdf import PdfReader
 
+    import os
+
     leitor = PdfReader(BytesIO(conteudo))
     print(f"  pdf: {len(leitor.pages)} páginas")
-    texto = "\n".join((pg.extract_text() or "") for pg in leitor.pages[:12])
+    ini, fim = (int(x) for x in os.environ.get("DIAG_PAGINAS", "1-12").split("-"))
+    max_chars = int(os.environ.get("DIAG_MAX_CHARS", max_chars))
+    texto = "\n".join((pg.extract_text() or "") for pg in leitor.pages[ini - 1 : fim])
     for linha in texto.splitlines()[:400]:
         if linha.strip():
             print("  |", linha[:220])
@@ -154,6 +182,8 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
             for info in z.infolist()[:50]:
                 print(f"  zip: {info.filename} ({info.file_size} bytes)")
+                if info.filename.lower().endswith(".mdb"):
+                    listar_mdb(z.read(info))
         return
     if "javascript" in tipo or url.split("?")[0].endswith(".js"):
         listar_chamadas_js(r.text)

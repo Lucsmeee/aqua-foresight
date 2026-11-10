@@ -1,25 +1,48 @@
 {
- "gerado_em": "2026-11-10T20:55:57+00:00",
+ "gerado_em": "2026-11-10T21:07:35+00:00",
  "fontes": {
   "df_limite": {
-   "status": "falha",
-   "url": "https://servicodados.ibge.gov.br/api/v3/malhas/estados/53?formato=application/vnd.geo+json&qualidade=intermediaria",
-   "erro": "ConnectTimeout('[Errno 110] Connection timed out')"
-  },
-  "df_reservatorios": {
-   "status": "falha",
-   "url": "https://overpass-api.de/api/interpreter",
-   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
-  },
-  "es_reservatorios": {
-   "status": "falha",
-   "url": "https://overpass-api.de/api/interpreter",
-   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
+   "status": "ok",
+   "url": "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-53-mun.json",
+   "fonte": "IBGE, malha municipal (cópia tbrugz/geodata-br no GitHub)",
+   "feicoes": 1
   },
   "es_provincias": {
-   "status": "falha",
+   "status": "ok",
+   "url": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/spain-provinces.geojson",
+   "fonte": "Províncias da Espanha (codeforgermany/click_that_hood, base IGN/CartoDB)",
+   "feicoes": 8,
+   "nomes": [
+    "Alacant/Alicante",
+    "Albacete",
+    "Castelló/Castellón",
+    "Cuenca",
+    "Murcia",
+    "Tarragona",
+    "Teruel",
+    "València/Valencia"
+   ]
+  },
+  "df_reservatorios": {
+   "status": "ok",
    "url": "https://overpass-api.de/api/interpreter",
-   "erro": "HTTPStatusError(\"Server error '502 Bad Gateway' for url 'https://overpass-api.de/api/interpreter'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\")"
+   "fonte": "OpenStreetMap (ODbL) via Overpass",
+   "feicoes": 2,
+   "nomes": [
+    "Barragem Santa Maria",
+    "Barragem do Descoberto"
+   ]
+  },
+  "es_reservatorios": {
+   "status": "ok",
+   "url": "https://overpass-api.de/api/interpreter",
+   "fonte": "OpenStreetMap (ODbL) via Overpass",
+   "feicoes": 5,
+   "nomes": [
+    "Embalse de Alarcón",
+    "Embalse de Contreras",
+    "Embassament de Tous"
+   ]
   }
  }
 }

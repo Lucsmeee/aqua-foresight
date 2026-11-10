@@ -232,13 +232,20 @@ footer ul { margin: 0; padding-left: 1.2em; }
   <div class="sub" style="background:var(--surface)">
     <div class="row" style="justify-content:space-between">
       <h3>Volume útil × limiares mensais da Res. ADASA 56/2025</h3>
-      <div class="tabs" role="group" aria-label="Reservatório">
-        <button type="button" data-res="descoberto" aria-pressed="true">Descoberto</button>
-        <button type="button" data-res="santa_maria" aria-pressed="false">Santa Maria</button>
+      <div class="row">
+        <div class="tabs" role="group" aria-label="Reservatório">
+          <button type="button" data-res="descoberto" aria-pressed="true">Descoberto</button>
+          <button type="button" data-res="santa_maria" aria-pressed="false">Santa Maria</button>
+        </div>
+        <div class="tabs" role="group" aria-label="Período">
+          <button type="button" data-anos="5" aria-pressed="true">5 anos</button>
+          <button type="button" data-anos="15" aria-pressed="false">15 anos</button>
+          <button type="button" data-anos="0" aria-pressed="false">Tudo</button>
+        </div>
       </div>
     </div>
     <div class="chartbox"><canvas id="chVol" aria-label="Série de volume útil com limiares amarelo e vermelho por mês"></canvas><span class="wm" id="wmVol"></span></div>
-    <p class="small muted">Linhas tracejadas: limite abaixo do qual o estado é Amarelo ou Vermelho no mês (Tabela 1). Os limites mudam mês a mês.</p>
+    <p class="small muted">Linhas tracejadas: limite abaixo do qual o estado é Amarelo ou Vermelho no mês (Res. ADASA 56/2025, Tabela 1, publicada em 21/08/2025). Antes disso valiam outras curvas de referência; aqui elas aparecem só como comparação. Linha cinza pontilhada: percentual publicado pelo SAR/ANA, em outra base de cálculo. Trechos sem linha são períodos sem medição na fonte.</p>
   </div>
   <div class="grid2">
     <div class="sub" style="background:var(--surface)">
@@ -524,6 +531,7 @@ let state = { cargas: [], enos: [], vol: [], audit: [] };
 // cargas: {id, arquivo, tipo, sha, bytes, lidas, validas, rejeitadas, sintetico, em, indicador?}
 // enos: {carga, ano, estacao, mes, valor, natureza}; vol: {carga, res, data, valor, natureza}
 let resAtivo = "descoberto";
+let janelaAnos = 5;
 let pendente = null; // arquivo de volume aguardando mapeamento
 const charts = {};
 
@@ -818,8 +826,11 @@ function mkChart(id, cfg) { if (!window.Chart) return; if (charts[id]) charts[id
 
 function renderCharts() {
   if (!window.Chart) { ["chVol", "chEnos", "chLag"].forEach(id => $(id).replaceWith(el("p", { class: "empty", text: "Biblioteca de gráficos não carregou." }))); return; }
-  // Volume × limiares
-  const s = volVigente(resAtivo);
+  // Volume × limiares (janela de anos; lacunas > 15 dias interrompem a linha)
+  const sTodo = volVigente(resAtivo);
+  const corte = janelaAnos && sTodo.length ? tOf(sTodo.at(-1).data) - janelaAnos * 365.25 * DIA : -Infinity;
+  const s = sTodo.filter(x => tOf(x.data) >= corte);
+  const comLacunas = (arr, f) => { const out = []; for (let i = 0; i < arr.length; i++) { if (i && tOf(arr[i].data) - tOf(arr[i - 1].data) > 15 * DIA) out.push({ x: tOf(arr[i].data) - DIA, y: null }); out.push({ x: tOf(arr[i].data), y: f(arr[i]) }); } return out; };
   $("wmVol").textContent = s.some(o => o.natureza === "sintetico") ? "SINTÉTICO" : "";
   const limPts = est => {
     if (!s.length) return [];
@@ -833,10 +844,10 @@ function renderCharts() {
   o.scales.y = { ...o.scales.y, min: 0, max: 100, title: { display: true, text: "% do volume útil", color: css("--muted") } };
   o.plugins.tooltip = { callbacks: { title: it => fmtData(isoOf(it[0].parsed.x)), label: it => `${it.dataset.label}: ${fmt(it.parsed.y)}%` } };
   mkChart("chVol", { type: "line", data: { datasets: [
-    { label: (s.some(x => x.natureza === "estimado") ? "Volume útil estimado (base ADASA) " : "Volume útil ") + NOMES[resAtivo], data: s.map(x => ({ x: tOf(x.data), y: x.valor })), borderColor: css("--accent"), backgroundColor: alfa(css("--accent"), "22"), fill: "origin", borderWidth: 1.8, pointRadius: 0, order: 3 },
-    ...(s.some(x => x.natureza === "estimado" && x.valor_sar != null) ? [{ label: "Percentual SAR/ANA (outra base)", data: s.filter(x => x.valor_sar != null).map(x => ({ x: tOf(x.data), y: x.valor_sar })), borderColor: css("--muted"), borderWidth: 1, borderDash: [2, 3], pointRadius: 0, fill: false, order: 2 }] : []),
-    { label: "Limiar Amarelo (<)", data: limPts("amarelo"), stepped: true, borderColor: css("--eh-amarelo"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
-    { label: "Limiar Vermelho (<)", data: limPts("vermelho"), stepped: true, borderColor: css("--eh-vermelho"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
+    { label: (s.some(x => x.natureza === "estimado") ? "Volume útil estimado (base ADASA) " : "Volume útil ") + NOMES[resAtivo], data: comLacunas(s, x => x.valor), spanGaps: false, borderColor: css("--accent"), backgroundColor: alfa(css("--accent"), "22"), fill: "origin", borderWidth: 1.8, pointRadius: 0, order: 3 },
+    ...(s.some(x => x.natureza === "estimado" && x.valor_sar != null) ? [{ label: "Percentual SAR/ANA (outra base)", data: comLacunas(s.filter(x => x.valor_sar != null), x => x.valor_sar), spanGaps: false, borderColor: css("--muted"), borderWidth: 1, borderDash: [2, 3], pointRadius: 0, fill: false, order: 2 }] : []),
+    { label: "Amarelo, Res. 56/2025 (<)", data: limPts("amarelo"), stepped: true, borderColor: css("--eh-amarelo"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
+    { label: "Vermelho, Res. 56/2025 (<)", data: limPts("vermelho"), stepped: true, borderColor: css("--eh-vermelho"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
   ] }, options: o });
 
   // ENOS
@@ -903,8 +914,11 @@ ligarDrop("dropEnos", "fileEnos", ingerirEnos);
 ligarDrop("dropVol", "fileVol", lerVolume);
 $("mapGo").addEventListener("click", processarPendente);
 $("mapCancel").addEventListener("click", () => { pendente = null; $("mapper").hidden = true; });
-document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
-  resAtivo = b.dataset.res; document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderCharts();
+document.querySelectorAll(".tabs button[data-res]").forEach(b => b.addEventListener("click", () => {
+  resAtivo = b.dataset.res; document.querySelectorAll(".tabs button[data-res]").forEach(x => x.setAttribute("aria-pressed", x === b)); renderCharts();
+}));
+document.querySelectorAll(".tabs button[data-anos]").forEach(b => b.addEventListener("click", () => {
+  janelaAnos = +b.dataset.anos; document.querySelectorAll(".tabs button[data-anos]").forEach(x => x.setAttribute("aria-pressed", x === b)); renderCharts();
 }));
 $("persist").addEventListener("change", () => {
   try { localStorage.setItem(KEY + "_on", $("persist").checked ? "1" : "0"); if (!$("persist").checked) localStorage.removeItem(KEY); } catch {}

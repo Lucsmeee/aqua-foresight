@@ -35,8 +35,10 @@ def test_proxima_medicao_disponivel_e_aceita_com_a_data_devolvida():
     # comportamento real: pedido 18/02/1992 → API devolveu 24/02/1992 (sem medição diária na época)
     regs = ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 11, 1))
     assert {r.data for r in regs} == {"2017-11-07"}
+    # comportamento real desde 2010: pedido 01/11/2010 → devolveu 31/10/2010 (medição anterior)
+    assert {r.data for r in ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 11, 9))} == {"2017-11-07"}
     with pytest.raises(ValueError, match="inesperada"):
-        ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 11, 9))  # data anterior à pedida
+        ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2019, 11, 9))  # salto grande demais
 
 
 def test_sem_medicao():

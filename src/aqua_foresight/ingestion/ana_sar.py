@@ -57,17 +57,17 @@ class Registro:
 
 
 def validar_data_devolvida(pedida: date, devolvida: date, max_dias: int = 400) -> None:
-    """A API devolve a medição do dia ou, se não houver, a PRÓXIMA disponível (comum antes dos anos 2000).
+    """A API devolve a medição do dia ou, se não houver, a mais próxima disponível — a seguinte (comum antes
+    de 2000) ou a anterior (visto a partir de 2010).
 
-    Bloqueia: dia/mês trocados (sinal de mudança no formato da API), datas anteriores à pedida e saltos
-    maiores que `max_dias`.
+    Bloqueia: dia/mês trocados (sinal de mudança no formato da API) e saltos maiores que `max_dias`.
     """
     if devolvida == pedida:
         return
     if pedida.day <= 12 and devolvida == date(pedida.year, pedida.day, pedida.month):
         raise ValueError(f"API devolveu {devolvida} para {pedida}: dia e mês trocados — formato de data mudou?")
     atraso = (devolvida - pedida).days
-    if not 0 < atraso <= max_dias:
+    if not 0 < abs(atraso) <= max_dias:
         raise ValueError(f"API devolveu {devolvida} para a data pedida {pedida}: diferença inesperada de {atraso} dias")
 
 

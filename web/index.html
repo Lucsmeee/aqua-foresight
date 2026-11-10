@@ -113,6 +113,7 @@ table{border-collapse:collapse;width:100%}
 .tab tbody tr.sel{background:#eef5ff}
 .tab td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tab .peq{font-size:11.5px;color:var(--muted)}
+.tab td.msg{max-width:260px;overflow-wrap:anywhere}
 .rolagem{overflow-x:auto}
 /* painel jurídico */
 .juridico{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:18px}
@@ -466,6 +467,14 @@ function em(res, t, tol = 3) {
 }
 function mesmoDiaEm(t0, ano) { const d = new Date(t0); let dia = d.getUTCDate(); if (d.getUTCMonth() === 1 && dia === 29) dia = 28; return Date.UTC(ano, d.getUTCMonth(), dia); }
 
+/* anos com menos de 300 dias de medição, em intervalos legíveis */
+function lacunas(r) {
+  const n = {}; for (const d of S.P.series[r].d) n[d.slice(0,4)] = (n[d.slice(0,4)] || 0) + 1;
+  const fim = anoDe(S.t0[r]) - 1, faltam = []; for (let a = 1990; a <= fim; a++) if ((n[a] || 0) < 300) faltam.push(a);
+  const iv = []; for (const a of faltam) { const u = iv[iv.length-1]; if (u && u[1] === a - 1) u[1] = a; else iv.push([a, a]); }
+  return iv.map(([a, b]) => a === b ? String(a) : `${a}–${b}`).join(", ");
+}
+const textoLacunas = r => { const l = lacunas(r); return l ? `anos com série incompleta: ${l}` : "série diária completa desde 1990"; };
 /* análogos históricos: o que aconteceu nos anos anteriores a partir da mesma data */
 function analogos(res, h) {
   const t0 = S.t0[res], v0 = S.v0[res], out = [];
@@ -517,7 +526,8 @@ function ticksTempo(x0, x1) {
 }
 /* gráfico de linhas no tempo com faixas, zonas mensais e degraus */
 function grafLinha(el, o) {
-  const W = o.w || 820, H = o.h || 300, ml = 46, mr = o.mr || 14, mt = 12, mb = 28;
+  el._redraw = () => grafLinha(el, o);
+  const W = o.w || larg(el), H = o.h || 300, ml = 46, mr = o.mr || 14, mt = 12, mb = 28;
   const x0 = o.x0, x1 = o.x1, y0 = o.y0 ?? 0, y1 = o.y1 ?? 100;
   const X = t => ml + (t - x0) / (x1 - x0) * (W - ml - mr), Y = v => mt + (1 - (v - y0) / (y1 - y0)) * (H - mt - mb);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.titulo || "gráfico")}">`;
@@ -578,6 +588,7 @@ function grafLinha(el, o) {
     alvo.addEventListener("mouseleave", () => { esconderDica(); cruz.setAttribute("opacity", 0); });
   }
 }
+function larg(el, min = 320) { return Math.max(min, Math.round(el.clientWidth || el.parentElement?.clientWidth || 820)); }
 const proximo = (pts, t) => { let lo = 0, hi = pts.length - 1; if (hi < 0) return null; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m][0] < t) lo = m; else hi = m; } return Math.abs(pts[lo][0]-t) < Math.abs(pts[hi][0]-t) ? pts[lo] : pts[hi]; };
 
 /* ======================= rotas ======================= */
@@ -665,7 +676,8 @@ function desenharHorizonte(r) {
     cols.push({rot:`D+${h}`, h, t, an, med:quantil(ps, .5), p10:quantil(ps, .1), p90:quantil(ps, .9), n:an.length,
       nAm:an.filter(a => a.proj < L.amarelo).length, nVm:an.filter(a => a.proj < L.vermelho).length});
   }
-  const W = 820, H = 300, ml = 46, mr = 120, mt = 18, mb = 34, cw = (W - ml - mr) / 4, bw = Math.min(70, cw * .42);
+  $("g-horizonte")._redraw = () => desenharHorizonte(r);
+  const W = larg($("g-horizonte")), H = 300, ml = 46, mr = 120, mt = 18, mb = 34, cw = (W - ml - mr) / 4, bw = Math.min(70, cw * .42);
   const Y = v => mt + (1 - v / 100) * (H - mt - mb);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Volume hoje e faixa histórica em 30, 60 e 90 dias">`;
   for (const v of [0,25,50,75,100]) s += `<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e8edf3"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#64748b">${v}%</text>`;
@@ -703,7 +715,7 @@ function desenharHorizonte(r) {
   $("t-horizonte").innerHTML = `<thead><tr><th>Horizonte</th><th>Data</th><th class="num">Mediana</th><th class="num">8 em 10 anos</th><th class="num">Limite Amarelo</th><th class="num">Anos abaixo do Amarelo</th><th class="num">Anos abaixo do Vermelho</th></tr></thead><tbody>` +
     cols.slice(1).map(c => { const L = lim(r, mesDe(c.t)); return `<tr><td><b>${c.rot}</b></td><td>${brT(c.t)}</td><td class="num">${fmt(c.med)}%</td><td class="num">${fmt(c.p10, 0)}–${fmt(c.p90, 0)}%</td><td class="num">&lt; ${L.amarelo}% (${MES3[mesDe(c.t)]})</td><td class="num">${c.nAm} de ${c.n}</td><td class="num">${c.nVm} de ${c.n}</td></tr>`; }).join("") + `</tbody>`;
   const anos = cols[3].an.map(a => a.ano);
-  $("m-horizonte").innerHTML = meta({fonte:fonteRes(r) + "; limites: " + FONTE_ADASA, data:`base ${brT(S.t0[r])}`, unidade:"% do volume útil", natureza:nat("referencia", "referência histórica (baseline sazonal) · não validada"), incerteza:`${anos.length} anos com dado (${anos[0]}–${anos[anos.length-1]}); anos de 2011 a 2021 ainda em carga`});
+  $("m-horizonte").innerHTML = meta({fonte:fonteRes(r) + "; limites: " + FONTE_ADASA, data:`base ${brT(S.t0[r])}`, unidade:"% do volume útil", natureza:nat("referencia", "referência histórica (baseline sazonal) · não validada"), incerteza:`${anos.length} anos com dado nas duas datas (${anos[0]}–${anos[anos.length-1]}); ${textoLacunas(r)}`});
 }
 
 function desenharJuridicoDash() {
@@ -761,7 +773,8 @@ function desenharMapa(reg) {
   for (const f of foco) for (const p of aneis(f)) for (const r of p) for (const [x, y] of r) { mnx = Math.min(mnx, x); mxx = Math.max(mxx, x); mny = Math.min(mny, y); mxy = Math.max(mxy, y); }
   const padX = (mxx - mnx) * (reg === "df" ? .05 : .18), padY = (mxy - mny) * (reg === "df" ? .05 : .25);
   mnx -= padX; mxx += padX; mny -= padY; mxy += padY;
-  const kx = Math.cos((mny + mxy) / 2 * Math.PI / 180), W = 860, H = Math.round(W * (mxy - mny) / ((mxx - mnx) * kx));
+  $("mapa")._redraw = () => desenharMapa(reg);
+  const kx = Math.cos((mny + mxy) / 2 * Math.PI / 180), W = larg($("mapa")) - 16, H = Math.round(W * (mxy - mny) / ((mxx - mnx) * kx));
   const Hc = clamp(H, 380, 620), esc2 = Math.min(W / ((mxx - mnx) * kx), Hc / (mxy - mny));
   const ox = (W - (mxx - mnx) * kx * esc2) / 2, oy = (Hc - (mxy - mny) * esc2) / 2;
   const P = (x, y) => [ox + (x - mnx) * kx * esc2, oy + (mxy - y) * esc2];
@@ -964,19 +977,19 @@ function renderEnos() {
     <tr><td><b>Baseline sazonal</b></td><td>Anos análogos (usado neste painel como referência)</td><td>MAE, RMSE, cobertura da faixa</td><td>${selo("amarelo", "Em uso, sem validação")}</td></tr>
     <tr><td><b>Modelo A</b></td><td>Previsão de volume sem variáveis ENOS</td><td>MAE/RMSE por horizonte, Brier, calibração</td><td>${selo("cinza", "Fase 4 · pendente")}</td></tr>
     <tr><td><b>Modelo B</b></td><td>Mesmo modelo com RONI e defasagens</td><td>Ganho % sobre o Modelo A, por estação</td><td>${selo("cinza", "Fase 4 · pendente")}</td></tr>
-    <tr><td><b>Análise de defasagens</b></td><td>RONI × anomalia de volume, por estação e defasagem</td><td>Correlação com controle de sazonalidade</td><td>${selo("cinza", "Fase 3 · pendente (aguarda série 2011–2021)")}</td></tr></tbody>`;
+    <tr><td><b>Análise de defasagens</b></td><td>RONI × anomalia de volume, por estação e defasagem</td><td>Correlação com controle de sazonalidade</td><td>${selo("cinza", "Fase 3 · pendente")}</td></tr></tbody>`;
 }
 function desenharRoni(anos) {
   const en = S.P.enos.serie, pts = en.map(p => [Date.UTC(p.ano, p.mes - 1, 15), p.valor, p]);
   const x1 = pts[pts.length-1][0] + 60*DIA, x0 = anos >= 99 ? pts[0][0] - 60*DIA : x1 - anos * 365.25 * DIA;
-  const vis = pts.filter(p => p[0] >= x0), W = 820, H = 280, ml = 46, mr = 14, mt = 12, mb = 28;
+  $("g-enos")._redraw = () => desenharRoni(anos);
+  const vis = pts.filter(p => p[0] >= x0), W = larg($("g-enos")), H = 280, ml = 46, mr = 14, mt = 12, mb = 28;
   const ymax = Math.max(2.5, ...vis.map(p => Math.abs(p[1]))), y0 = -ymax, y1 = ymax;
   const X = t => ml + (t - x0) / (x1 - x0) * (W - ml - mr), Y = v => mt + (1 - (v - y0) / (y1 - y0)) * (H - mt - mb);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="RONI">`;
   s += `<rect x="${ml}" y="${Y(y1)}" width="${W-ml-mr}" height="${Y(.5)-Y(y1)}" fill="#c2410c" opacity=".05"/><rect x="${ml}" y="${Y(-.5)}" width="${W-ml-mr}" height="${Y(y0)-Y(-.5)}" fill="#1d4ed8" opacity=".05"/>`;
   for (let v = Math.ceil(y0); v <= y1; v++) s += `<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v ? "#e8edf3" : "#94a3b8"}"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#64748b">${v > 0 ? "+" : ""}${v}</text>`;
   for (const v of [.5, -.5]) s += `<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v > 0 ? "#c2410c" : "#1d4ed8"}" stroke-dasharray="4 4" opacity=".7"/>`;
-  s += `<text x="${W-mr-4}" y="${Y(.5)-5}" text-anchor="end" font-size="11" fill="#c2410c" font-weight="600">limiar El Niño +0,5</text><text x="${W-mr-4}" y="${Y(-.5)+14}" text-anchor="end" font-size="11" fill="#1d4ed8" font-weight="600">limiar La Niña −0,5</text>`;
   for (const [t, r] of ticksTempo(x0, x1)) s += `<text x="${X(t)}" y="${H-mb+17}" text-anchor="middle" font-size="11" fill="#64748b">${r}</text>`;
   const bw = Math.max(1, (W - ml - mr) / vis.length - (anos <= 10 ? 1.5 : .3));
   for (const [t, v, p] of vis) {
@@ -992,7 +1005,7 @@ function desenharRoni(anos) {
     const p = q[2]; mostrarDica(ev, `<b>${p.estacao}/${p.ano}</b><br>RONI: <b>${p.valor > 0 ? "+" : ""}${fmt(p.valor, 2)} °C</b><br>Condição: ${ROT_FASE[p.condicao] || p.condicao}<br>Episódio: ${ROT_FASE[p.episodio] || p.episodio}${p.confirmado ? " (confirmado)" : " (não confirmado)"}<div class="m">${p.natureza === "observado" ? "observado" : "provisório"}</div>`);
   });
   svg.querySelector(".alvo").addEventListener("mouseleave", () => { esconderDica(); cruz.setAttribute("opacity", 0); });
-  $("enos-leg").innerHTML = `<span><i class="bl" style="background:#c2410c"></i>El Niño (≥ +0,5)</span><span><i class="bl" style="background:#1d4ed8"></i>La Niña (≤ −0,5)</span><span><i class="bl" style="background:#9a9a94"></i>Neutro</span><span><i class="bl" style="background:#c2410c;opacity:.45"></i>Valor provisório</span>`;
+  $("enos-leg").innerHTML = `<span><i class="bl" style="background:#c2410c"></i>El Niño (≥ +0,5)</span><span><i class="bl" style="background:#1d4ed8"></i>La Niña (≤ −0,5)</span><span><i class="bl" style="background:#9a9a94"></i>Neutro</span><span><i class="bl" style="background:#c2410c;opacity:.45"></i>Valor provisório</span><span><i class="tr" style="border-color:#c2410c"></i>Limiares ±0,5 °C</span>`;
   $("m-enos").innerHTML = meta({fonte:FONTE_RONI, data:`obtido em ${br(S.P.enos.obtido_em?.slice(0,10))}`, unidade:"°C (anomalia relativa)", natureza:nat("observado","observado") + " " + nat("provisorio","2 últimos provisórios")});
 }
 function desenharRelacao() {
@@ -1000,7 +1013,8 @@ function desenharRelacao() {
   $("enos-rel-desc").innerHTML = `Quanto o volume variou nos 90 dias seguintes a ${brT(t0).slice(0,5)} em cada ano, separando os anos pela fase do ENOS vigente nessa época (episódio pelo critério do CPC, trimestre publicado até a data). Cada ponto é um ano; o traço é a mediana do grupo. É uma descrição, não um teste estatístico: com poucos anos por grupo, diferenças podem ser acaso.`;
   for (const [r, el] of [["descoberto", "g-enos-desc"], ["santa_maria", "g-enos-sm"]]) {
     const an = analogos(r, 90).map(a => { const f = faseENOS(a.ano, mesDe(S.t0[r])); return {...a, fase: f?.episodio || null, f}; }).filter(a => a.fase);
-    const grupos = ["la_nina", "neutro", "el_nino"], W = 400, H = 260, ml = 44, mr = 10, mt = 14, mb = 40;
+    $(el)._redraw = desenharRelacao;
+    const grupos = ["la_nina", "neutro", "el_nino"], W = larg($(el), 300), H = 260, ml = 44, mr = 10, mt = 14, mb = 40;
     const vals = an.map(a => a.delta), ymin = Math.min(-5, ...vals) - 3, ymax = Math.max(5, ...vals) + 3;
     const Y = v => mt + (1 - (v - ymin) / (ymax - ymin)) * (H - mt - mb), cw = (W - ml - mr) / 3;
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Variação em 90 dias por fase ENOS, ${RES[r].nome}">`;
@@ -1018,7 +1032,7 @@ function desenharRelacao() {
     $(el).innerHTML = s;
     $(el).querySelectorAll(".pt").forEach(c => { c.addEventListener("mousemove", ev => mostrarDica(ev, `<b>${c.dataset.a}</b> · ${ROT_FASE[c.dataset.g]}<br>Variação em 90 dias: <b>${(+c.dataset.d > 0 ? "+" : "") + fmt(+c.dataset.d)} p.p.</b>`)); c.addEventListener("mouseleave", esconderDica); });
   }
-  $("m-enos-rel").innerHTML = meta({fonte:`${FONTE_SAR}; ${FONTE_RONI}`, unidade:"pontos percentuais de volume útil", natureza:nat("referencia", "análise descritiva"), incerteza:"sem teste de significância; anos de 2011 a 2021 ainda em carga; não implica causalidade"});
+  $("m-enos-rel").innerHTML = meta({fonte:`${FONTE_SAR}; ${FONTE_RONI}`, unidade:"pontos percentuais de volume útil", natureza:nat("referencia", "análise descritiva"), incerteza:`sem teste de significância; não implica causalidade; Descoberto: ${textoLacunas("descoberto")}`});
 }
 
 /* ======================= 6. COMPARATIVO ======================= */
@@ -1088,15 +1102,16 @@ function desenharComp(anos) {
     dica: t => { const a = proximo(pD, t), b = proximo(pJ, t); return `<b>${brT(t)}</b><br>Descoberto: ${a && Math.abs(a[0]-t) < 15*DIA ? `<b>${fmt(a[1])}%</b>` : "sem dado"}<br>Júcar (ACT): ${b && Math.abs(b[0]-t) < 10*DIA ? `<b>${fmt(b[1])}%</b>` : "sem dado"}`; }});
   $("comp-leg").innerHTML = `<span><i style="background:#2a78d6"></i>Descoberto, % do volume útil (DF)</span><span><i style="background:#6250d6"></i>Alarcón + Contreras + Tous, % da capacidade (ES)</span>`;
   const a = amplitudes(); $("comp-amp").textContent = `Variação típica dentro de um ano: Descoberto ≈ ${fmt(a.aD, 0)} p.p.; Júcar ≈ ${fmt(a.aJ, 0)} p.p.`;
-  $("m-comp").innerHTML = meta({fonte:`${fonteRes("descoberto")}; ${FONTE_MITECO}`, unidade:"% (bases diferentes: volume útil × capacidade total)", natureza:natRes("descoberto") + " " + nat("observado","Júcar observado"), incerteza:"Descoberto sem dados de 2011 a 2021 (carga em andamento)"});
+  $("m-comp").innerHTML = meta({fonte:`${fonteRes("descoberto")}; ${FONTE_MITECO}`, unidade:"% (bases diferentes: volume útil × capacidade total)", natureza:natRes("descoberto") + " " + nat("observado","Júcar observado"), incerteza:`Descoberto: ${textoLacunas("descoberto")}`});
 }
 
 /* ======================= 7. ADMINISTRAÇÃO ======================= */
+const curto = (t, n = 140) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
 function renderAdmin() {
   const ST = {verificado:["verde", "Verificado"], falha:["vermelho", "Falha"], nao_verificado:["cinza", "Não verificado"]};
-  const linhas = (S.P.fontes || []).map(f => { const [c, t] = ST[f.status] || ["cinza", f.status]; return `<tr><td><b>${esc(f.nome)}</b>${f.url ? `<div class="peq"><a href="${esc(f.url)}">${esc(f.url.replace(/^https?:\/\//, "").slice(0, 60))}</a></div>` : ""}</td><td>API / arquivo público</td><td>${selo(c, t)}</td><td class="num">${br(f.verificado_em?.slice(0,10))}<div class="peq">${esc(f.verificado_em?.slice(11,16) || "")} UTC</div></td><td class="peq">${esc(f.mensagem || "")}</td></tr>`; });
+  const linhas = (S.P.fontes || []).map(f => { const [c, t] = ST[f.status] || ["cinza", f.status]; return `<tr><td><b>${esc(f.nome)}</b>${f.url ? `<div class="peq"><a href="${esc(f.url)}">${esc(f.url.replace(/^https?:\/\//, "").slice(0, 60))}</a></div>` : ""}</td><td>API / arquivo público</td><td>${selo(c, t)}</td><td class="num">${br(f.verificado_em?.slice(0,10))}<div class="peq">${esc(f.verificado_em?.slice(11,16) || "")} UTC</div></td><td class="peq msg">${esc(curto(f.mensagem))}</td></tr>`; });
   const gm = S.geo.meta?.fontes || {};
-  for (const [k, g] of Object.entries(gm)) linhas.push(`<tr><td><b>Geometria: ${esc(k)}</b><div class="peq">${esc(g.fonte || g.url || "")}</div></td><td>API pública</td><td>${selo(g.status === "ok" ? "verde" : "vermelho", g.status === "ok" ? "Verificado" : "Falha")}</td><td class="num">${br(S.geo.meta.gerado_em?.slice(0,10))}</td><td class="peq">${g.status === "ok" ? `${g.feicoes} feição(ões)` : esc(g.erro || "")}</td></tr>`);
+  for (const [k, g] of Object.entries(gm)) linhas.push(`<tr><td><b>Geometria: ${esc(k)}</b><div class="peq">${esc(g.fonte || g.url || "")}</div></td><td>API pública</td><td>${selo(g.status === "ok" ? "verde" : "vermelho", g.status === "ok" ? "Verificado" : "Falha")}</td><td class="num">${br(S.geo.meta.gerado_em?.slice(0,10))}</td><td class="peq msg">${g.status === "ok" ? `${g.feicoes} feição(ões)` : esc(curto(g.erro))}</td></tr>`);
   const pend = [["ANA · HidroWebService (telemetria)", "API com credencial", "aguardando credencial (hidro@ana.gov.br)"], ["ADASA · SIRH (série oficial de volume)", "portal web", "inacessível a partir do GitHub Actions; pedir série via LAI"], ["INMET (chuva e temperatura)", "API pública", "não integrado"], ["Copernicus ERA5 (reanálise)", "API com cadastro", "não integrado"], ["NASA SMAP (umidade do solo)", "API com cadastro", "não integrado"], ["AEMET (Espanha)", "API com chave", "não integrado"], ["Outorgas e demanda (ANA/ADASA)", "convênio / dados agregados", "não integrado (decisão D-03)"]];
   for (const [n, t, m] of pend) linhas.push(`<tr><td><b>${esc(n)}</b></td><td>${esc(t)}</td><td>${selo("cinza", "Não integrado")}</td><td class="num">—</td><td class="peq">${esc(m)}</td></tr>`);
   $("t-fontes").innerHTML = `<thead><tr><th>Fonte</th><th>Acesso</th><th>Status</th><th class="num">Última verificação</th><th>Mensagem</th></tr></thead><tbody>${linhas.join("")}</tbody>`;
@@ -1136,6 +1151,7 @@ async function iniciar() {
   $("side-rodape").innerHTML = `Dados até <b>${brT(Math.max(S.t0.descoberto, S.t0.santa_maria))}</b><br>Painel gerado em ${br(S.P.gerado_em.slice(0,10))}<br>v${esc(S.P.versao || "")}`;
   $("rodape").innerHTML = `Aqua Foresight · projeto de pesquisa (uso acadêmico e de planejamento). Estados e cenários oficiais são divulgados pela ADASA e pela Confederación Hidrográfica del Júcar. Fontes: ANA (SAR), ADASA, NOAA/CPC, MITECO, CHJ, IBGE, OpenStreetMap.`;
   addEventListener("hashchange", rotear);
+  let tm; addEventListener("resize", () => { clearTimeout(tm); tm = setTimeout(() => document.querySelectorAll(".view:not([hidden]) .graf, .view:not([hidden]) #mapa").forEach(el => el._redraw && el._redraw()), 200); });
   rotear();
 }
 iniciar();

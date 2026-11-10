@@ -40,7 +40,8 @@ Coloque CSV ou XLSX em `data/manual/volume/` (Add file → Upload files). O envi
 | Fases ENOS (critério CPC: ±0,5 °C por ≥5 estações) | ✅ |
 | Base normativa Res. ADASA 56/2025, Tabela 1 completa | ✅ conferida em 2 fontes oficiais; ⚠️ revisão jurídica e vigência pendentes (D-05) |
 | Motor de enquadramento indicativo | ✅ |
-| Página do pipeline (`web/index.html`) | ✅ lê os JSON publicados; aceita arquivos; demonstração sintética marcada quando não há dados |
+| Painel público (`web/index.html`) | ✅ resumo em linguagem simples, reservatórios, histórico com faixas de estado, mesmo dia em outros anos, El Niño |
+| Página técnica (`web/tecnico.html`) | ✅ etapas do pipeline, proveniência, envio de arquivos, auditoria |
 | API FastAPI e CLI `aqua` | ✅ |
 | CI (pytest em SQLite e PostgreSQL/PostGIS) | ✅ |
 | Modelos preditivos A × B | ⏳ |
@@ -74,7 +75,8 @@ src/aqua_foresight/
   api/         FastAPI
   publicar.py  orquestrador da execução agendada
   cli.py       comando `aqua`
-web/index.html             página do pipeline
+web/index.html             painel público
+web/tecnico.html           detalhes técnicos do pipeline
 data/raw/                  brutos versionados (proveniência)
 data/manual/volume/        planilhas de volume útil
 .github/workflows/         ci.yml, pipeline-diario.yml

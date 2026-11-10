@@ -3,975 +3,449 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aqua Foresight Pipeline</title>
+<title>Água no DF hoje · Aqua Foresight</title>
+<meta name="description" content="Situação dos reservatórios do Descoberto e de Santa Maria, comparada aos limites da ADASA, e o El Niño.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: ferramenta de operação em etapas (1→6), cada etapa um painel; indicadores antes dos detalhes. */
+/* Layout: painel de leitura rápida — frase-resumo → dois reservatórios lado a lado → histórico com faixas → El Niño → como ler. */
 :root {
-  --bg: #f2f5f5;
+  --bg: #eef4f3;
   --surface: #ffffff;
-  --ink: #102a32;
-  --muted: #566c73;
-  --line: #d2dee0;
-  --accent: #0a6a86;
-  --accent-soft: #e3f0f4;
-  --ok: #2c7a4b;
-  --warn: #a87c00;
-  --crit: #b3362a;
-  --synth: #7a3fa0;
-  --eh-verde: #2c7a4b;
-  --eh-amarelo: #c99700;
-  --eh-vermelho: #c0392b;
-  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
-  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --ink: #0d2a30;
+  --muted: #557075;
+  --line: #d6e2e1;
+  --water: #1b7fa3;
+  --water-deep: #0f5470;
+  --water-light: #cfe8f1;
+  --verde: #2b8a57;
+  --amarelo: #c99400;
+  --vermelho: #c6422c;
+  --quente: #d55a2a;
+  --frio: #2f7fb6;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d1a1e; --surface: #132428; --ink: #e2ecee; --muted: #93a8ae; --line: #284047;
-    --accent: #5cc0dc; --accent-soft: #173640; --ok: #6cc28d; --warn: #e2b94a; --crit: #ef8577; --synth: #c595e6;
-    --eh-verde: #6cc28d; --eh-amarelo: #e9c24a; --eh-vermelho: #ef8577;
+    --bg: #0b1c20; --surface: #12292e; --ink: #e4eff0; --muted: #94adb1; --line: #24434a;
+    --water: #46b3d9; --water-deep: #2a86a8; --water-light: #173d49;
+    --verde: #5cc48a; --amarelo: #e6bd3d; --vermelho: #ef7a63; --quente: #f08a5d; --frio: #6cb0e3;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0d1a1e; --surface: #132428; --ink: #e2ecee; --muted: #93a8ae; --line: #284047;
-  --accent: #5cc0dc; --accent-soft: #173640; --ok: #6cc28d; --warn: #e2b94a; --crit: #ef8577; --synth: #c595e6;
-  --eh-verde: #6cc28d; --eh-amarelo: #e9c24a; --eh-vermelho: #ef8577;
+  --bg: #0b1c20; --surface: #12292e; --ink: #e4eff0; --muted: #94adb1; --line: #24434a;
+  --water: #46b3d9; --water-deep: #2a86a8; --water-light: #173d49;
+  --verde: #5cc48a; --amarelo: #e6bd3d; --vermelho: #ef7a63; --quente: #f08a5d; --frio: #6cb0e3;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
-main { max-width: 1180px; margin: 0 auto; padding: 28px 18px 64px; display: grid; gap: 22px; }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; text-wrap: balance; }
-h1 { font-size: clamp(1.7rem, 3.6vw, 2.3rem); }
-h2 { font-size: 1.3rem; }
-h3 { font-size: 1.02rem; }
-p { margin: 0; max-width: 72ch; }
-a { color: var(--accent); }
-code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
-.muted { color: var(--muted); }
-.small { font-size: 0.86rem; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 var(--font-body); }
+a { color: var(--water-deep); }
+:root[data-theme="dark"] a { color: var(--water); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--water); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.1; text-wrap: balance; }
+p { margin: 0; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
-header { display: grid; gap: 10px; }
-.kicker { font: 500 0.78rem var(--font-mono); color: var(--accent); letter-spacing: 0.04em; }
-.banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); font-size: 0.9rem; }
-.banner.synth { border-color: var(--synth); border-left-width: 5px; }
-.banner.real { border-color: var(--ok); border-left-width: 5px; }
-.banner.warnb { border-color: var(--warn); border-left-width: 5px; }
+/* topo */
+.topo { padding: 18px 0; }
+.topo .wrap { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.marca { display: flex; align-items: center; gap: 10px; font: 700 1.05rem var(--font-display); color: var(--ink); text-decoration: none; }
+.gota { width: 26px; height: 26px; }
+.topo nav { display: flex; gap: 16px; font-size: 0.92rem; }
 
-/* Etapas do pipeline */
-.stepper { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; position: relative; }
-.step .n { font: 500 0.72rem var(--font-mono); color: var(--muted); }
-.step .nm { font-weight: 600; font-size: 0.92rem; }
-.step .st { font-size: 0.8rem; color: var(--muted); }
-.step.done { border-top: 3px solid var(--ok); }
-.step.wait { border-top: 3px dashed var(--line); }
-.step.alert { border-top: 3px solid var(--warn); }
-@media (max-width: 860px) { .stepper { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 460px) { .stepper { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* resumo */
+.resumo { padding: 26px 0 30px; }
+.resumo .data { font-size: 0.92rem; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+.resumo h1 { font-size: clamp(2rem, 5vw, 3.3rem); font-weight: 800; margin: 8px 0 12px; max-width: 22ch; }
+.resumo h1 .tom { color: var(--verde); }
+.resumo h1 .tom.amarelo { color: var(--amarelo); }
+.resumo h1 .tom.vermelho { color: var(--vermelho); }
+.resumo .sub { font-size: 1.1rem; color: var(--muted); max-width: 62ch; }
 
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; }
-.panel > .ph { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.num-badge { font: 600 0.78rem var(--font-mono); color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
-.sub { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; align-content: start; background: var(--bg); }
+/* reservatórios */
+.reservatorios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .reservatorios { grid-template-columns: 1fr; } }
+.res { background: var(--surface); border-radius: 18px; padding: 22px; display: grid; grid-template-columns: 170px 1fr; gap: 22px; align-items: center; box-shadow: 0 1px 0 var(--line); }
+@media (max-width: 420px) { .res { grid-template-columns: 1fr; } .res svg { max-width: 160px; } }
+.res h2 { font-size: 1.45rem; font-weight: 700; }
+.res .abastece { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+.res .pct { font: 800 3.4rem/1 var(--font-display); font-variant-numeric: tabular-nums; margin-top: 12px; letter-spacing: -0.02em; }
+.res .pct small { font-size: 1.3rem; font-weight: 700; color: var(--muted); margin-left: 2px; }
+.res .rotulo { color: var(--muted); font-size: 0.9rem; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 0.92rem; margin: 12px 0 10px; }
+.chip::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.chip.verde { color: var(--verde); background: color-mix(in srgb, var(--verde) 13%, transparent); }
+.chip.amarelo { color: var(--amarelo); background: color-mix(in srgb, var(--amarelo) 16%, transparent); }
+.chip.vermelho { color: var(--vermelho); background: color-mix(in srgb, var(--vermelho) 14%, transparent); }
+.res ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.95rem; }
+.res li b { font-variant-numeric: tabular-nums; }
+.nota { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+.tanque { width: 100%; height: auto; display: block; }
+.tanque .agua { fill: var(--water); }
+.tanque .agua-topo { fill: var(--water-deep); }
+.tanque .vidro { fill: var(--water-light); }
+.tanque .borda { fill: none; stroke: var(--ink); stroke-opacity: 0.25; stroke-width: 2; }
+.tanque .marca-a { stroke: var(--amarelo); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.tanque .marca-v { stroke: var(--vermelho); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.tanque text { font: 700 11.5px var(--font-body); }
+.tanque .ta { fill: var(--amarelo); } .tanque .tv { fill: var(--vermelho); }
 
-label.file {
-  display: grid; gap: 4px; place-items: center; text-align: center; padding: 16px; border: 1.5px dashed var(--accent);
-  border-radius: 8px; background: var(--surface); cursor: pointer; font-size: 0.9rem;
-}
-label.file:hover, label.file.drag { background: var(--accent-soft); }
-label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.field { display: grid; gap: 3px; font-size: 0.82rem; color: var(--muted); min-width: 150px; flex: 1; }
-select, input[type="text"] {
-  font: 0.9rem var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 6px; padding: 6px 8px;
-}
-select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button {
-  font: 500 0.86rem var(--font-body); color: var(--accent); background: var(--surface);
-  border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; cursor: pointer;
-}
-button:hover { background: var(--accent-soft); }
-button.primary { background: var(--accent); color: var(--surface); }
-button.primary:hover { filter: brightness(1.08); }
-button:disabled { opacity: 0.45; cursor: not-allowed; }
-.check { display: inline-flex; gap: 6px; align-items: center; font-size: 0.86rem; }
+/* seções */
+section.bloco { margin-top: 44px; }
+.bloco > header { display: flex; justify-content: space-between; align-items: end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.bloco h2 { font-size: 1.7rem; font-weight: 700; }
+.bloco .intro { color: var(--muted); max-width: 64ch; margin-top: 6px; }
+.painel { background: var(--surface); border-radius: 18px; padding: 20px; box-shadow: 0 1px 0 var(--line); }
+.botoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.botoes button { font: 600 0.9rem var(--font-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.botoes button:hover { border-color: var(--water); }
+.botoes button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.grafico { position: relative; height: 340px; }
+.legenda { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); margin-top: 12px; }
+.legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.legenda i { width: 16px; height: 12px; border-radius: 3px; display: inline-block; }
+.dica { font-size: 0.9rem; color: var(--muted); margin-top: 8px; }
 
-table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
-th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-weight: 600; font-size: 0.78rem; color: var(--muted); background: var(--bg); white-space: nowrap; }
-td.n { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.82rem; }
-.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
-.tw table { min-width: 620px; }
-.empty { color: var(--muted); font-size: 0.88rem; padding: 10px 0; }
+/* anos anteriores */
+.anos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .anos { grid-template-columns: 1fr; } }
+.anos h3 { font-size: 1.1rem; margin-bottom: 10px; }
+.barra { display: grid; grid-template-columns: 46px 1fr 44px; gap: 10px; align-items: center; font-size: 0.9rem; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.barra .trilho { height: 12px; background: var(--water-light); border-radius: 6px; overflow: hidden; }
+.barra .cheio { height: 100%; background: var(--water); border-radius: 6px; }
+.barra.atual { font-weight: 700; }
+.barra.atual .cheio { background: var(--water-deep); }
+.barra .ano { color: var(--muted); }
 
-.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
-.pill.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
-.pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
-.pill.crit { background: color-mix(in srgb, var(--crit) 16%, transparent); color: var(--crit); }
-.pill.synth { background: color-mix(in srgb, var(--synth) 16%, transparent); color: var(--synth); }
-.pill.mute { border: 1px solid var(--line); color: var(--muted); }
+/* El Niño */
+.enos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; }
+@media (max-width: 760px) { .enos { grid-template-columns: 1fr; } }
+.enos .valor { font: 800 3rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.enos .valor small { font-size: 1.1rem; color: var(--muted); font-weight: 700; }
+.enos .fase { font: 700 1.25rem var(--font-display); margin: 8px 0; }
+.escala text { font: 600 11px var(--font-body); fill: var(--muted); }
+.escala .lbl { font-weight: 700; }
 
-/* Indicadores */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; background: var(--surface); border-left: 6px solid var(--line); }
-.card.eh-verde { border-left-color: var(--eh-verde); }
-.card.eh-amarelo { border-left-color: var(--eh-amarelo); }
-.card.eh-vermelho { border-left-color: var(--eh-vermelho); }
-.card .big { font: 600 2.2rem var(--font-display); font-variant-numeric: tabular-nums; line-height: 1; }
-.card .big small { font-size: 1rem; color: var(--muted); }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 0.86rem; }
-.kv dt { color: var(--muted); }
-.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
-.state { font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.85rem; }
-.state.verde { color: var(--eh-verde); } .state.amarelo { color: var(--eh-amarelo); } .state.vermelho { color: var(--eh-vermelho); }
-.note { font-size: 0.8rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+/* cores */
+.cores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .cores { grid-template-columns: 1fr; } }
+.cor { background: var(--surface); border-radius: 14px; padding: 16px 18px; border-top: 6px solid; box-shadow: 0 1px 0 var(--line); }
+.cor h3 { font-size: 1.1rem; margin-bottom: 6px; }
+.cor p { font-size: 0.93rem; color: var(--muted); }
+.cor.verde { border-color: var(--verde); } .cor.amarelo { border-color: var(--amarelo); } .cor.vermelho { border-color: var(--vermelho); }
 
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tabs button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
-.chartbox { position: relative; height: 320px; }
-.chartbox.short { height: 240px; }
-.wm { position: absolute; top: 6px; right: 10px; font: 700 0.75rem var(--font-mono); color: var(--synth); letter-spacing: 0.08em; pointer-events: none; }
-
-pre.log { margin: 0; max-height: 220px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: 0.78rem/1.55 var(--font-mono); white-space: pre-wrap; }
-footer { color: var(--muted); font-size: 0.84rem; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
-footer ul { margin: 0; padding-left: 1.2em; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+footer { margin: 56px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 0.88rem; color: var(--muted); display: grid; gap: 10px; }
+.erro { background: var(--surface); border-left: 5px solid var(--amarelo); padding: 16px; border-radius: 10px; }
+@media (prefers-reduced-motion: no-preference) { .tanque .agua, .tanque .agua-topo { transition: y 0.8s ease, height 0.8s ease; } }
 </style>
 </head>
 <body>
-<main>
 
-<header>
-  <div class="kicker">AQUA FORESIGHT · PIPELINE · v0.2.0</div>
-  <h1>Coletar, processar, armazenar, analisar e gerar indicadores</h1>
-  <p class="muted">Reservatórios do Descoberto e do Santa Maria (DF), ENOS pelo RONI do NOAA/CPC e estados hidrológicos da Res. ADASA nº 56/2025. Tudo roda neste navegador; os arquivos não saem da sua máquina.</p>
-  <div id="modeBanner" class="banner"></div>
-</header>
+<div class="topo"><div class="wrap">
+  <a class="marca" href="./"><svg class="gota" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.6 6.5 8.3 6.5 11.6A6.5 6.5 0 0 1 5.5 14.1C5.5 10.8 8.4 7.1 12 2.5z" fill="var(--water)"/></svg>Aqua Foresight</a>
+  <nav><a href="#historico">Histórico</a><a href="#elnino">El Niño</a><a href="tecnico.html">Detalhes técnicos</a></nav>
+</div></div>
 
-<nav class="stepper" aria-label="Etapas do pipeline" id="stepper"></nav>
+<main class="wrap">
+  <section class="resumo" aria-live="polite">
+    <p class="data" id="dataRef">Carregando dados…</p>
+    <h1 id="manchete">Como está a água do DF hoje</h1>
+    <p class="sub" id="subManchete">Volume dos dois principais reservatórios do Distrito Federal comparado aos limites definidos pela ADASA para cada mês.</p>
+  </section>
 
-<!-- 1 COLETA -->
-<section class="panel" aria-labelledby="h1c">
-  <div class="ph"><h2 id="h1c">1 · Coleta</h2><span class="muted small">Coleta automática diária pelo GitHub Actions; também aceita arquivos carregados aqui.</span></div>
-  <div class="tw" id="fontesAutoWrap"><table><thead><tr><th>Fonte automática</th><th>Situação</th><th>Verificado em</th><th>Detalhe</th></tr></thead><tbody id="fontesAuto"></tbody></table></div>
-  <div class="grid2">
-    <div class="sub">
-      <h3>ENOS · RONI (NOAA/CPC)</h3>
-      <p class="small">Baixe o arquivo público, sem cadastro: <a href="https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt">RONI.ascii.txt</a>. Ou o <a href="https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt">oni.ascii.txt</a> legado.</p>
-      <label class="file" id="dropEnos"><input type="file" id="fileEnos" accept=".txt,.ascii,text/plain"><strong>Escolher ou arrastar RONI.ascii.txt</strong><span class="muted small">texto do CPC: ESTAÇÃO ANO [TOTAL] ANOMALIA</span></label>
-      <div class="row">
-        <label class="field">Indicador<select id="enosInd"><option value="RONI">RONI (operacional desde 01/02/2026)</option><option value="ONI">ONI (legado)</option></select></label>
-        <label class="check"><input type="checkbox" id="enosSynth"> Arquivo de teste / sintético</label>
+  <div class="reservatorios" id="cards"></div>
+
+  <section class="bloco" id="historico">
+    <header>
+      <div>
+        <h2>Como o volume variou</h2>
+        <p class="intro">O reservatório enche na chuva (nov–abr) e esvazia na seca (mai–out). As faixas mostram onde começam a atenção e a escassez em cada mês.</p>
       </div>
-    </div>
-    <div class="sub">
-      <h3>Volume útil dos reservatórios</h3>
-      <p class="small">CSV, XLSX ou XLS. Fonte já identificada: <a href="https://www.ana.gov.br/sar/">ANA · SAR</a>, módulo do Distrito Federal, que exporta a tabela do dia em CSV (cota, volume, % e data). Série histórica: ADASA (SIRH) ou pedido formal; veja a nota no fim da página.</p>
-      <label class="file" id="dropVol"><input type="file" id="fileVol" accept=".csv,.txt,.xlsx,.xls"><strong>Escolher ou arrastar a planilha</strong><span class="muted small">uma linha por data (e por reservatório, se houver os dois)</span></label>
-      <div id="mapper" hidden class="sub" style="background:var(--surface)">
-        <div class="row" style="justify-content:space-between"><strong class="small" id="mapFile"></strong><span class="small muted" id="mapInfo"></span></div>
-        <div class="row">
-          <label class="field">Coluna de data<select id="mapData"></select></label>
-          <label class="field">Coluna de volume útil (%)<select id="mapVol"></select></label>
-          <label class="field">Reservatório<select id="mapRes"></select></label>
-        </div>
-        <div class="tw" id="mapPreview"></div>
-        <div class="row">
-          <label class="check"><input type="checkbox" id="mapSynth"> Este arquivo é de teste / sintético</label>
-          <span style="flex:1"></span>
-          <button type="button" id="mapCancel">Cancelar</button>
-          <button type="button" class="primary" id="mapGo">Processar arquivo</button>
-        </div>
+      <div class="botoes" role="group" aria-label="Reservatório no gráfico">
+        <button type="button" data-res="descoberto" aria-pressed="true">Descoberto</button>
+        <button type="button" data-res="santa_maria" aria-pressed="false">Santa Maria</button>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- 2 PROCESSAMENTO -->
-<section class="panel" aria-labelledby="h2p">
-  <div class="ph"><h2 id="h2p">2 · Processamento e proveniência</h2><span class="muted small">Cada arquivo vira uma carga com SHA-256. Conteúdo repetido é ignorado; conteúdo novo cria versão sem apagar a anterior.</span></div>
-  <div class="tw"><table><thead><tr><th>#</th><th>Arquivo</th><th>Tipo</th><th>SHA-256</th><th>Lidas</th><th>Válidas</th><th>Rejeitadas</th><th>Natureza</th><th>Carregado em</th></tr></thead><tbody id="provBody"></tbody></table></div>
-  <div id="rejeicoes" class="small"></div>
-</section>
-
-<!-- 3 ARMAZENAMENTO -->
-<section class="panel" aria-labelledby="h3a">
-  <div class="ph"><h2 id="h3a">3 · Armazenamento</h2>
-    <div class="row">
-      <label class="check"><input type="checkbox" id="persist"> Guardar neste navegador</label>
-      <button type="button" id="copyDb">Copiar base (JSON)</button>
-      <button type="button" id="clearSynth">Remover dados sintéticos</button>
-      <button type="button" id="clearAll">Apagar tudo</button>
-    </div>
-  </div>
-  <div class="tw"><table><thead><tr><th>Tabela</th><th>Série</th><th>Registros vigentes</th><th>Período</th><th>Lacunas</th><th>Natureza</th><th>Versões</th></tr></thead><tbody id="storeBody"></tbody></table></div>
-  <p class="small muted" id="storeMsg"></p>
-</section>
-
-<!-- 5 INDICADORES (antes da análise detalhada: resumo primeiro) -->
-<section class="panel" aria-labelledby="h5i">
-  <div class="ph"><h2 id="h5i">5 · Indicadores</h2><span class="muted small" id="refDate"></span></div>
-  <div class="cards" id="cards"></div>
-  <p class="banner warnb small">Resultado indicativo de sistema de apoio à decisão. Não é ato administrativo, não declara estado hidrológico oficial e não substitui a ADASA. A trajetória é extrapolação linear dos últimos 30 dias, sem validação estatística: serve para sinalizar aproximação de limiar, não como previsão.</p>
-</section>
-
-<!-- 4 ANÁLISE -->
-<section class="panel" aria-labelledby="h4a">
-  <div class="ph"><h2 id="h4a">4 · Análise</h2></div>
-  <div class="sub" style="background:var(--surface)">
-    <div class="row" style="justify-content:space-between">
-      <h3>Volume útil × limiares mensais da Res. ADASA 56/2025</h3>
-      <div class="row">
-        <div class="tabs" role="group" aria-label="Reservatório">
-          <button type="button" data-res="descoberto" aria-pressed="true">Descoberto</button>
-          <button type="button" data-res="santa_maria" aria-pressed="false">Santa Maria</button>
-        </div>
-        <div class="tabs" role="group" aria-label="Período">
-          <button type="button" data-anos="5" aria-pressed="true">5 anos</button>
-          <button type="button" data-anos="15" aria-pressed="false">15 anos</button>
-          <button type="button" data-anos="0" aria-pressed="false">Tudo</button>
-        </div>
+    </header>
+    <div class="painel">
+      <div class="botoes" role="group" aria-label="Período" style="margin-bottom:12px">
+        <button type="button" data-anos="1" aria-pressed="true">Último ano</button>
+        <button type="button" data-anos="5" aria-pressed="false">5 anos</button>
+        <button type="button" data-anos="0" aria-pressed="false">Desde 1990</button>
       </div>
+      <div class="grafico"><canvas id="grafVolume" role="img" aria-label="Volume do reservatório ao longo do tempo sobre faixas verde, amarela e vermelha"></canvas></div>
+      <div class="legenda">
+        <span><i style="background:var(--water)"></i>Volume do reservatório</span>
+        <span><i style="background:color-mix(in srgb, var(--verde) 25%, transparent)"></i>Normal</span>
+        <span><i style="background:color-mix(in srgb, var(--amarelo) 32%, transparent)"></i>Atenção</span>
+        <span><i style="background:color-mix(in srgb, var(--vermelho) 28%, transparent)"></i>Escassez</span>
+      </div>
+      <p class="dica" id="dicaGrafico">Faixas pela Resolução ADASA nº 56/2025, em vigor desde agosto de 2025. Antes disso, elas servem só como referência. Trechos sem linha são períodos sem medição.</p>
     </div>
-    <div class="chartbox"><canvas id="chVol" aria-label="Série de volume útil com limiares amarelo e vermelho por mês"></canvas><span class="wm" id="wmVol"></span></div>
-    <p class="small muted">Linhas tracejadas: limite abaixo do qual o estado é Amarelo ou Vermelho no mês (Res. ADASA 56/2025, Tabela 1, publicada em 21/08/2025). Antes disso valiam outras curvas de referência; aqui elas aparecem só como comparação. Linha cinza pontilhada: percentual publicado pelo SAR/ANA, em outra base de cálculo. Trechos sem linha são períodos sem medição na fonte.</p>
-  </div>
-  <div class="grid2">
-    <div class="sub" style="background:var(--surface)">
-      <h3 id="enosTitle">ENOS · RONI (últimos 25 anos)</h3>
-      <div class="chartbox short"><canvas id="chEnos" aria-label="Série RONI colorida pela condição da estação"></canvas><span class="wm" id="wmEnos"></span></div>
-      <p class="small muted">Barras quentes ≥ +0,5 °C, frias ≤ −0,5 °C. Episódio = 5 estações seguidas na mesma condição (critério CPC).</p>
+  </section>
+
+  <section class="bloco">
+    <header><div><h2 id="tituloAnos">Neste mesmo dia, em outros anos</h2><p class="intro">Para saber se o nível de hoje é comum para a época. “—” indica ano sem medição disponível.</p></div></header>
+    <div class="anos" id="anos"></div>
+  </section>
+
+  <section class="bloco" id="elnino">
+    <header><div><h2>E o El Niño?</h2><p class="intro">O El Niño é o aquecimento do Oceano Pacífico tropical. Ele muda o clima em várias partes do mundo, mas o efeito sobre as chuvas do DF não é automático. Medir esse efeito é uma das perguntas deste projeto.</p></div></header>
+    <div class="painel enos">
+      <div>
+        <div class="valor" id="enosValor">—</div>
+        <div class="fase" id="enosFase"></div>
+        <p id="enosTexto" class="rotulo"></p>
+        <svg class="escala" id="enosEscala" viewBox="0 0 420 70" role="img" aria-label="Escala do índice RONI de −2,5 a +2,5 °C"></svg>
+      </div>
+      <div class="grafico" style="height:230px"><canvas id="grafEnos" role="img" aria-label="Índice RONI nos últimos cinco anos"></canvas></div>
     </div>
-    <div class="sub" style="background:var(--surface)">
-      <h3>Exploratório: RONI com defasagem × anomalia de volume</h3>
-      <div class="chartbox short"><canvas id="chLag" aria-label="Correlação entre RONI defasado e anomalia mensal de volume útil"></canvas><span class="wm" id="wmLag"></span></div>
-      <p class="small muted" id="lagNote">Correlação de Pearson entre o RONI de k meses antes e a anomalia mensal de volume (média do mês menos a média histórica daquele mês). Autocorrelação infla a aparência de significância; não é causalidade nem ganho preditivo (isso é o experimento A × B).</p>
+  </section>
+
+  <section class="bloco">
+    <header><div><h2>O que significam as cores</h2><p class="intro">Estados hidrológicos da Resolução ADASA nº 56/2025, em linguagem simples.</p></div></header>
+    <div class="cores">
+      <div class="cor verde"><h3>Normal</h3><p>Volume acima do limite de atenção do mês. Não há restrição aos usos de água autorizados.</p></div>
+      <div class="cor amarelo"><h3>Atenção</h3><p>Volume abaixo do limite de atenção. Os usos autorizados passam a seguir as regras de alocação de água da ADASA.</p></div>
+      <div class="cor vermelho"><h3>Escassez</h3><p>Volume abaixo do limite de escassez. A norma declara situação de escassez hídrica e os usos seguem as regras dos órgãos responsáveis.</p></div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- 6 DISPONIBILIZAÇÃO E AUDITORIA -->
-<section class="panel" aria-labelledby="h6d">
-  <div class="ph"><h2 id="h6d">6 · Disponibilização e auditoria</h2>
-    <div class="row"><button type="button" id="copyInd">Copiar indicadores (JSON)</button><button type="button" id="copyLog">Copiar trilha</button></div>
-  </div>
-  <pre class="log" id="auditLog" aria-live="polite"></pre>
-</section>
-
-<footer>
-  <strong>O que falta para rodar com dados reais completos</strong>
-  <ul>
-    <li><strong>RONI:</strong> pronto. Baixe o arquivo do CPC e carregue na etapa 1.</li>
-    <li><strong>Volume útil, situação do dia:</strong> exporte a tabela CSV do módulo Distrito Federal do SAR/ANA e carregue. Cada dia exportado acumula uma observação por reservatório.</li>
-    <li><strong>Volume útil, histórico diário:</strong> o manual do SAR (v1.1, 2022) não inclui o DF na área de dados históricos. Caminhos: consultar o SIRH da ADASA ou pedir a série diária de volume útil de Descoberto e Santa Maria à ADASA pela Lei de Acesso à Informação. Com 10+ anos de série, a análise de defasagens e os modelos passam a fazer sentido.</li>
-    <li><strong>Atualização automática:</strong> exige rodar o pipeline Python agendado (por exemplo, GitHub Actions) e publicar esta página junto com os dados processados.</li>
-  </ul>
-  <p>Fontes: NOAA/CPC (RONI, base 1991–2020); ANA · Sistema de Acompanhamento de Reservatórios; Res. ADASA nº 56/2025, Tabela 1 (ADASA SEI 178925819; DODF nº 157, 21/08/2025). Aqua Foresight v0.2, ferramenta de pesquisa e apoio à decisão.</p>
-</footer>
-
+  <footer>
+    <p><b>Atenção:</b> o estado mostrado aqui é calculado automaticamente pelo Aqua Foresight, um projeto de pesquisa. O estado oficial é divulgado pela ADASA. Nada nesta página é previsão.</p>
+    <p id="rodapeFontes">Fontes: ANA, Sistema de Acompanhamento de Reservatórios (volume); NOAA/CPC (El Niño, índice RONI); Resolução ADASA nº 56/2025 (limites).</p>
+    <p><a href="tecnico.html">Detalhes técnicos, proveniência dos dados e envio de arquivos</a> · <a href="https://github.com/Lucsmeee/aqua-foresight">Código no GitHub</a></p>
+  </footer>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<script id="core">
-/* ===== Núcleo puro do pipeline (sem DOM) ===== */
-const ESTACOES = ["DJF","JFM","FMA","MAM","AMJ","MJJ","JJA","JAS","ASO","SON","OND","NDJ"];
-const NOMES = { descoberto: "Descoberto", santa_maria: "Santa Maria" };
-// Res. ADASA 56/2025, Tabela 1 — limites "<" em % do volume útil, jan..dez
+<script>
+/* Res. ADASA 56/2025, Tabela 1 — limite "<" em % do volume útil, jan..dez */
 const ADASA = {
   descoberto:  { amarelo: [50,61,70,75,75,70,62,52,38,30,30,35], vermelho: [40,51,60,65,65,60,52,42,28,20,20,25] },
   santa_maria: { amarelo: [48,55,57,57,55,51,45,38,30,23,25,28], vermelho: [38,45,47,47,45,41,35,28,20,13,15,18] },
 };
+const INFO = {
+  descoberto: { nome: "Descoberto", abastece: "Maior reservatório do DF; abastece cerca de 64% da população." },
+  santa_maria: { nome: "Santa Maria", abastece: "Sistema Torto/Santa Maria; abastece cerca de 19% da população." },
+};
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const ESTADO = {
+  verde: { nome: "Normal", frase: "situação normal" },
+  amarelo: { nome: "Atenção", frase: "nível de atenção" },
+  vermelho: { nome: "Escassez", frase: "nível de escassez" },
+};
 const DIA = 86400000;
-
-function parseCPC(texto) {
-  const out = [];
-  const linhas = texto.split(/\r?\n/);
-  for (let i = 0; i < linhas.length; i++) {
-    const p = linhas[i].trim().split(/\s+/).filter(Boolean);
-    if (!p.length) continue;
-    const est = p[0].toUpperCase();
-    if (!ESTACOES.includes(est)) {
-      if (!out.length) continue; // cabeçalho
-      throw new Error(`linha ${i + 1}: estação inválida "${p[0]}"`);
-    }
-    if (p.length !== 3 && p.length !== 4) throw new Error(`linha ${i + 1}: esperado 3 ou 4 colunas`);
-    const ano = parseInt(p[1], 10), valor = parseFloat(p[p.length - 1]);
-    if (!Number.isFinite(ano) || !Number.isFinite(valor)) throw new Error(`linha ${i + 1}: valor não numérico`);
-    if (ano < 1850 || ano > 2100) throw new Error(`linha ${i + 1}: ano fora de faixa`);
-    if (Math.abs(valor) > 10) throw new Error(`linha ${i + 1}: anomalia implausível (${valor})`);
-    out.push({ ano, estacao: est, mes: ESTACOES.indexOf(est) + 1, valor });
-  }
-  if (!out.length) throw new Error("arquivo sem linhas de dados");
-  for (let i = 1; i < out.length; i++) {
-    const a = out[i - 1].ano * 12 + out[i - 1].mes, b = out[i].ano * 12 + out[i].mes;
-    if (b - a !== 1) throw new Error(`descontinuidade antes de ${out[i].estacao}/${out[i].ano}`);
-  }
-  return out;
-}
-
-function classificarFases(serie, limiar = 0.5, minEst = 5) {
-  const cond = serie.map(p => p.valor >= limiar ? "el_nino" : p.valor <= -limiar ? "la_nina" : "neutro");
-  const ep = cond.map(() => "neutro"), conf = cond.map(() => true);
-  let i = 0;
-  while (i < cond.length) {
-    let j = i;
-    while (j + 1 < cond.length && cond[j + 1] === cond[i]) j++;
-    if (cond[i] !== "neutro") {
-      if (j - i + 1 >= minEst) for (let k = i; k <= j; k++) ep[k] = cond[i];
-      else if (j === cond.length - 1) for (let k = i; k <= j; k++) conf[k] = false;
-    }
-    i = j + 1;
-  }
-  return serie.map((p, k) => ({ ...p, condicao: cond[k], episodio: ep[k], confirmado: conf[k] }));
-}
-
-function parseNum(v) {
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (v == null) return null;
-  let s = String(v).replace(/%/g, "").replace(/\s/g, "").trim();
-  if (!s) return null;
-  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
-  else s = s.replace(",", ".");
-  if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
-  return parseFloat(s);
-}
-
-function pad(n) { return String(n).padStart(2, "0"); }
-function isoOk(y, m, d) {
-  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-  const t = Date.UTC(y, m - 1, d);
-  const dt = new Date(t);
-  if (dt.getUTCMonth() !== m - 1) return null;
-  return `${y}-${pad(m)}-${pad(d)}`;
-}
-function parseData(v) {
-  if (v == null || v === "") return null;
-  if (v instanceof Date && !isNaN(v)) return isoOk(v.getFullYear(), v.getMonth() + 1, v.getDate());
-  if (typeof v === "number") {
-    if (v > 20000 && v < 80000) { // número de série do Excel
-      const d = new Date(Math.round((v - 25569) * DIA));
-      return isoOk(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
-    }
-    return null;
-  }
-  const s = String(v).trim();
-  let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
-  if (m) { let y = +m[3]; if (y < 100) y += 2000; return isoOk(y, +m[2], +m[1]); }
-  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (m) return isoOk(+m[1], +m[2], +m[3]);
-  return null;
-}
-function tOf(iso) { const [y, m, d] = iso.split("-").map(Number); return Date.UTC(y, m - 1, d); }
-function isoOf(t) { const d = new Date(t); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
-
-function identificarReservatorio(v) {
-  const s = String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (s.includes("descoberto")) return "descoberto";
-  if (s.includes("santa maria") || s.includes("santa_maria") || s.includes("stamaria")) return "santa_maria";
-  return null;
-}
-
-function splitCSV(texto) {
-  const amostra = texto.split(/\r?\n/).slice(0, 15).join("\n");
-  const delims = [";", "\t", ","];
-  const cont = d => (amostra.match(new RegExp(d === "\t" ? "\t" : "\\" + d, "g")) || []).length;
-  const delim = delims.reduce((a, b) => cont(b) > cont(a) ? b : a);
-  const rows = []; let row = [], cell = "", q = false;
-  for (let i = 0; i < texto.length; i++) {
-    const c = texto[i];
-    if (q) {
-      if (c === '"' && texto[i + 1] === '"') { cell += '"'; i++; }
-      else if (c === '"') q = false;
-      else cell += c;
-    } else if (c === '"') q = true;
-    else if (c === delim) { row.push(cell); cell = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && texto[i + 1] === "\n") i++;
-      row.push(cell); rows.push(row); row = []; cell = "";
-    } else cell += c;
-  }
-  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
-  return rows.filter(r => r.some(x => String(x).trim() !== ""));
-}
-
-function acharCabecalho(rows) {
-  for (let i = 0; i < Math.min(rows.length, 20); i++) {
-    const textuais = rows[i].filter(c => typeof c === "string" && /[a-zA-ZÀ-ú]/.test(c)).length;
-    if (textuais >= 2) return i;
-  }
-  return 0;
-}
-
-function adivinharColunas(headers) {
-  const norm = headers.map(h => String(h ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase());
-  const data = norm.findIndex(h => /data|date|dia/.test(h));
-  let vol = norm.findIndex(h => /(volume|vol\.?).*(%|percent|util)|(%|percent).*(vol|util)|v\.?u\.?\s*\(?%/.test(h));
-  if (vol < 0) vol = norm.findIndex(h => /%|percent/.test(h));
-  const res = norm.findIndex(h => /reservat|barragem|manancial|nome/.test(h));
-  return { data, vol, res };
-}
-
-/* Transforma linhas brutas em observações validadas. res: índice de coluna ou id fixo ("descoberto"). */
-function processarTabela(rows, map, hojeISO) {
-  const validas = new Map(), rej = [];
-  let lidas = 0, duplicadas = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i]; lidas++;
-    const linha = i + 1;
-    const data = parseData(r[map.data]);
-    if (!data) { rej.push({ linha, motivo: "data inválida", bruto: r[map.data] }); continue; }
-    if (data > hojeISO) { rej.push({ linha, motivo: "data no futuro", bruto: data }); continue; }
-    const res = typeof map.res === "number" ? identificarReservatorio(r[map.res]) : map.res;
-    if (!res) { rej.push({ linha, motivo: "reservatório fora do piloto", bruto: r[map.res] }); continue; }
-    const v = parseNum(r[map.vol]);
-    if (v == null) { rej.push({ linha, motivo: "volume não numérico", bruto: r[map.vol] }); continue; }
-    if (v < 0 || v > 100) { rej.push({ linha, motivo: "volume fora de 0–100%", bruto: v }); continue; }
-    const k = res + "|" + data;
-    if (validas.has(k)) duplicadas++;
-    validas.set(k, { res, data, valor: v });
-  }
-  return { obs: [...validas.values()].sort((a, b) => a.data < b.data ? -1 : 1), lidas, rejeitadas: rej, duplicadas };
-}
-
-function enquadrar(res, dataISO, valor) {
-  const t = ADASA[res]; if (!t) return null;
-  const mes = +dataISO.slice(5, 7);
-  const am = t.amarelo[mes - 1], vm = t.vermelho[mes - 1];
-  const estado = valor < vm ? "vermelho" : valor < am ? "amarelo" : "verde";
-  return { estado, mes, amarelo: am, vermelho: vm, margemAmarelo: +(valor - am).toFixed(2), margemVermelho: +(valor - vm).toFixed(2) };
-}
-
-function regressao(pontos) { // pontos: [{x (dias), y}]
-  const n = pontos.length; if (n < 2) return null;
-  const mx = pontos.reduce((s, p) => s + p.x, 0) / n, my = pontos.reduce((s, p) => s + p.y, 0) / n;
-  let sxy = 0, sxx = 0; for (const p of pontos) { sxy += (p.x - mx) * (p.y - my); sxx += (p.x - mx) ** 2; }
-  if (sxx === 0) return null;
-  const b = sxy / sxx; return { slope: b, intercept: my - b * mx, n };
-}
-
-/* Trajetória: extrapolação linear dos últimos 30 dias até 90 dias, contra o limiar do mês de cada dia. */
-function trajetoria(serie, res) {
-  if (!serie.length) return null;
-  const ult = serie[serie.length - 1], tUlt = tOf(ult.data);
-  const janela = serie.filter(o => tOf(o.data) > tUlt - 30 * DIA).map(o => ({ x: (tOf(o.data) - tUlt) / DIA, y: o.valor }));
-  if (janela.length < 10) return { insuficiente: true, n: janela.length };
-  const r = regressao(janela);
-  const out = { slope: r.slope, n: r.n, cruzamentos: {} };
-  for (const est of ["amarelo", "vermelho"]) {
-    for (let d = 1; d <= 90; d++) {
-      const iso = isoOf(tUlt + d * DIA);
-      const lim = ADASA[res][est][+iso.slice(5, 7) - 1];
-      const proj = ult.valor + r.slope * d;
-      if (proj < lim) { out.cruzamentos[est] = { dias: d, data: iso, limite: lim, projetado: +proj.toFixed(1) }; break; }
-    }
-  }
-  return out;
-}
-
-function pearson(xs, ys) {
-  const n = xs.length; if (n < 3) return null;
-  const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
-  let sxy = 0, sxx = 0, syy = 0;
-  for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
-  if (!sxx || !syy) return null;
-  return sxy / Math.sqrt(sxx * syy);
-}
-
-/* Correlação RONI(t−k) × anomalia mensal de volume(t), k = 0..12. */
-function correlacaoDefasada(enos, serie, maxLag = 12) {
-  const mensal = new Map();
-  for (const o of serie) {
-    const k = +o.data.slice(0, 4) * 12 + (+o.data.slice(5, 7) - 1);
-    const a = mensal.get(k) || { s: 0, n: 0 }; a.s += o.valor; a.n++; mensal.set(k, a);
-  }
-  const medias = [...mensal.entries()].filter(([, a]) => a.n >= 10).map(([k, a]) => ({ k, mes: k % 12, v: a.s / a.n }));
-  const clima = Array.from({ length: 12 }, (_, m) => { const xs = medias.filter(o => o.mes === m); return xs.length ? xs.reduce((s, o) => s + o.v, 0) / xs.length : null; });
-  const anom = new Map(medias.filter(o => clima[o.mes] != null).map(o => [o.k, o.v - clima[o.mes]]));
-  const roni = new Map(enos.map(p => [p.ano * 12 + (p.mes - 1), p.valor]));
-  const res = [];
-  for (let lag = 0; lag <= maxLag; lag++) {
-    const xs = [], ys = [];
-    for (const [k, a] of anom) { const r = roni.get(k - lag); if (r != null) { xs.push(r); ys.push(a); } }
-    res.push({ lag, r: pearson(xs, ys), n: xs.length });
-  }
-  return { meses: anom.size, porLag: res };
-}
-
-function contarLacunas(serie) {
-  let lac = 0;
-  for (let i = 1; i < serie.length; i++) { const d = (tOf(serie[i].data) - tOf(serie[i - 1].data)) / DIA; if (d > 1) lac += d - 1; }
-  return lac;
-}
-
-if (typeof module !== "undefined") module.exports = { parseCPC, classificarFases, parseNum, parseData, identificarReservatorio, splitCSV, acharCabecalho, adivinharColunas, processarTabela, enquadrar, trajetoria, correlacaoDefasada, contarLacunas, ADASA };
-</script>
-
-<script>
-/* ===== Estado, UI e renderização ===== */
 const $ = id => document.getElementById(id);
-const hoje = new Date();
-const HOJE = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-const KEY = "aqua_pipeline_v2";
-function novoId() { return state.cargas.reduce((m, c) => Math.max(m, c.id), 0) + 1; }
-
-let state = { cargas: [], enos: [], vol: [], audit: [] };
-// cargas: {id, arquivo, tipo, sha, bytes, lidas, validas, rejeitadas, sintetico, em, indicador?}
-// enos: {carga, ano, estacao, mes, valor, natureza}; vol: {carga, res, data, valor, natureza}
-let resAtivo = "descoberto";
-let janelaAnos = 5;
-let pendente = null; // arquivo de volume aguardando mapeamento
-const charts = {};
-
-function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
-function agoraISO() { return new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC"; }
-function audit(acao, det) { state.audit.push({ em: agoraISO(), acao, det }); }
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (n, d = 1) => n == null || !isFinite(n) ? "—" : n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const tOf = iso => { const [y, m, d] = iso.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+const dataLonga = iso => { const [y, m, d] = iso.split("-").map(Number); return `${d} de ${MESES[m - 1]} de ${y}`; };
 function el(tag, attrs = {}, ...kids) {
   const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
+  for (const [k, v] of Object.entries(attrs)) k === "class" ? e.className = v : k === "text" ? e.textContent = v : e.setAttribute(k, v);
   for (const k of kids) if (k != null) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
   return e;
 }
-function fmt(n, d = 1) { return n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }); }
-function fmtData(iso) { return iso ? iso.split("-").reverse().join("/") : "—"; }
+const estadoDe = (res, iso, v) => { const m = +iso.slice(5, 7) - 1; return v < ADASA[res].vermelho[m] ? "vermelho" : v < ADASA[res].amarelo[m] ? "amarelo" : "verde"; };
 
-async function sha256(buf) {
-  try { const h = await crypto.subtle.digest("SHA-256", buf); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join(""); }
-  catch { return null; }
-}
+let P = null, resAtivo = "descoberto", anosAtivo = 1;
+const graficos = {};
 
-/* --- visão vigente (última carga por chave) --- */
-function enosVigente() {
-  const reais = state.cargas.filter(c => c.tipo === "ENOS" && !c.sintetico && c.validas > 0);
-  const sint = state.cargas.filter(c => c.tipo === "ENOS" && c.sintetico && c.validas > 0);
-  const c = (reais.length ? reais : sint).at(-1);
-  if (!c) return { carga: null, serie: [] };
-  return { carga: c, serie: state.enos.filter(p => p.carga === c.id) };
-}
-function volVigente(res) {
-  const temReal = state.vol.some(o => o.res === res && o.natureza !== "sintetico");
-  const m = new Map();
-  for (const o of state.vol) {
-    if (o.res !== res) continue;
-    if (temReal && o.natureza === "sintetico") continue;
-    m.set(o.data, o); // cargas mais novas sobrescrevem na visão vigente
-  }
-  return [...m.values()].sort((a, b) => a.data < b.data ? -1 : 1);
-}
-function haSintetico() { return state.cargas.some(c => c.sintetico) && (enosVigente().carga?.sintetico || ["descoberto", "santa_maria"].some(r => volVigente(r).some(o => o.natureza === "sintetico"))); }
-
-/* --- ingestão ENOS --- */
-async function ingerirEnos(file) {
-  const buf = await file.arrayBuffer();
-  const sha = await sha256(buf);
-  const ind = $("enosInd").value;
-  if (sha && state.cargas.some(c => c.sha === sha)) { audit("carga_ignorada_conteudo_identico", { arquivo: file.name, sha }); render(); return; }
-  const id = novoId();
-  const sint = $("enosSynth").checked;
-  const carga = { id, arquivo: file.name, tipo: "ENOS", indicador: ind, sha, bytes: buf.byteLength, lidas: 0, validas: 0, rejeitadas: [], sintetico: sint, em: agoraISO() };
-  try {
-    const serie = parseCPC(new TextDecoder("utf-8").decode(buf));
-    carga.lidas = carga.validas = serie.length;
-    serie.forEach((p, i) => state.enos.push({ carga: id, ...p, natureza: sint ? "sintetico" : i >= serie.length - 2 ? "estimado_provisorio" : "observado" }));
-    audit("ingestao_enos_sucesso", { arquivo: file.name, indicador: ind, sha, registros: serie.length, periodo: `${serie[0].estacao}/${serie[0].ano} a ${serie.at(-1).estacao}/${serie.at(-1).ano}` });
-  } catch (e) {
-    carga.rejeitadas = [{ linha: "—", motivo: e.message, bruto: "" }];
-    audit("ingestao_enos_falha", { arquivo: file.name, erro: e.message });
-  }
-  state.cargas.push(carga);
-  salvar(); render();
-}
-
-/* --- ingestão de volume: leitura + mapeamento --- */
-async function lerVolume(file) {
-  const buf = await file.arrayBuffer();
-  const sha = await sha256(buf);
-  let rows;
-  try {
-    if (/\.(xlsx|xls)$/i.test(file.name)) {
-      if (!window.XLSX) throw new Error("leitor de planilhas não carregou; salve como CSV");
-      const wb = XLSX.read(buf, { type: "array", cellDates: true });
-      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
-    } else {
-      let txt = new TextDecoder("utf-8", { fatal: false }).decode(buf);
-      if (txt.includes(String.fromCharCode(0xFFFD))) txt = new TextDecoder("windows-1252").decode(buf);
-      rows = splitCSV(txt);
-    }
-  } catch (e) { audit("leitura_volume_falha", { arquivo: file.name, erro: e.message }); render(); return; }
-  if (!rows.length) { audit("leitura_volume_falha", { arquivo: file.name, erro: "arquivo vazio" }); render(); return; }
-  const hi = acharCabecalho(rows);
-  const headers = rows[hi].map((h, i) => String(h || `coluna ${i + 1}`));
-  pendente = { file, sha, bytes: buf.byteLength, headers, rows: rows.slice(hi + 1) };
-  abrirMapper();
-}
-
-function abrirMapper() {
-  const p = pendente, g = adivinharColunas(p.headers);
-  $("mapFile").textContent = p.file.name;
-  $("mapInfo").textContent = `${p.rows.length} linhas · ${p.headers.length} colunas`;
-  const opts = (sel, idx) => { sel.replaceChildren(...p.headers.map((h, i) => el("option", { value: i, text: h }))); if (idx >= 0) sel.value = idx; };
-  opts($("mapData"), g.data); opts($("mapVol"), g.vol);
-  const sr = $("mapRes");
-  sr.replaceChildren(
-    el("option", { value: "fixo:descoberto", text: "Arquivo só do Descoberto" }),
-    el("option", { value: "fixo:santa_maria", text: "Arquivo só do Santa Maria" }),
-    ...p.headers.map((h, i) => el("option", { value: "col:" + i, text: "Coluna: " + h }))
-  );
-  if (g.res >= 0) sr.value = "col:" + g.res;
-  const tb = el("table", {}, el("thead", {}, el("tr", {}, ...p.headers.map(h => el("th", { text: h })))),
-    el("tbody", {}, ...p.rows.slice(0, 4).map(r => el("tr", {}, ...p.headers.map((_, i) => el("td", { text: r[i] instanceof Date ? r[i].toLocaleDateString("pt-BR") : (r[i] ?? "") }))))));
-  $("mapPreview").replaceChildren(tb);
-  $("mapSynth").checked = false;
-  $("mapper").hidden = false;
-  $("mapData").focus();
-}
-
-function processarPendente() {
-  const p = pendente; if (!p) return;
-  const rv = $("mapRes").value;
-  const map = { data: +$("mapData").value, vol: +$("mapVol").value, res: rv.startsWith("col:") ? +rv.slice(4) : rv.slice(5) };
-  const sint = $("mapSynth").checked;
-  $("mapper").hidden = true; pendente = null;
-  if (p.sha && state.cargas.some(c => c.sha === p.sha)) { audit("carga_ignorada_conteudo_identico", { arquivo: p.file.name, sha: p.sha }); render(); return; }
-  const r = processarTabela(p.rows, map, HOJE);
-  const id = novoId();
-  state.cargas.push({ id, arquivo: p.file.name, tipo: "VOLUME", sha: p.sha, bytes: p.bytes, lidas: r.lidas, validas: r.obs.length, rejeitadas: r.rejeitadas, duplicadas: r.duplicadas, sintetico: sint, em: agoraISO() });
-  for (const o of r.obs) state.vol.push({ carga: id, ...o, natureza: sint ? "sintetico" : "observado" });
-  audit(r.obs.length ? "ingestao_volume_sucesso" : "ingestao_volume_sem_validas", { arquivo: p.file.name, sha: p.sha, lidas: r.lidas, validas: r.obs.length, rejeitadas: r.rejeitadas.length, duplicadas: r.duplicadas, mapeamento: { data: p.headers[map.data], volume: p.headers[map.vol], reservatorio: typeof map.res === "number" ? p.headers[map.res] : map.res } });
-  salvar(); render();
-}
-
-/* --- persistência opcional --- */
-function salvar() {
-  try { if ($("persist").checked) localStorage.setItem(KEY, JSON.stringify(state)); } catch { $("storeMsg").textContent = "Não foi possível guardar neste navegador (armazenamento bloqueado ou cheio)."; }
-}
-function carregarSalvo() {
-  try {
-    const on = localStorage.getItem(KEY + "_on") === "1"; $("persist").checked = on;
-    if (on) { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.cargas) { state = s; return true; } }
-  } catch {}
-  return false;
-}
-
-/* --- dados sintéticos de demonstração (claramente marcados) --- */
-function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function gerarSintetico() {
-  const rnd = mulberry32(20261110);
-  const idE = novoId();
-  const ini = 1995 * 12, fim = hoje.getFullYear() * 12 + hoje.getMonth() - 2;
-  let ruido = 0; const vals = [];
-  for (let k = ini; k <= fim; k++) {
-    ruido = 0.7 * ruido + (rnd() - 0.5) * 0.35;
-    vals.push(1.0 * Math.sin(2 * Math.PI * (k - ini) / 49) + 0.45 * Math.sin(2 * Math.PI * (k - ini) / 29 + 1.3) + ruido);
-  }
-  state.cargas.push({ id: idE, arquivo: "sintetico_enos.txt", tipo: "ENOS", indicador: "RONI", sha: null, bytes: 0, lidas: vals.length, validas: vals.length, rejeitadas: [], sintetico: true, em: agoraISO() });
-  vals.forEach((v, i) => { const k = ini + i; state.enos.push({ carga: idE, ano: Math.floor(k / 12), mes: k % 12 + 1, estacao: ESTACOES[k % 12], valor: Math.round(v * 10) / 10, natureza: "sintetico" }); });
-  const idV = idE + 1; let n = 0;
-  const t0 = Date.UTC(2015, 0, 1), t1 = tOf(HOJE) - DIA;
-  for (const [res, base, amp, fase] of [["descoberto", 63, 30, 105], ["santa_maria", 58, 22, 120]]) {
-    let desvio = 0;
-    for (let t = t0; t <= t1; t += DIA) {
-      const doy = (t - Date.UTC(new Date(t).getUTCFullYear(), 0, 1)) / DIA;
-      desvio = 0.995 * desvio + (rnd() - 0.5) * 0.9;
-      const v = Math.max(3, Math.min(100, base + amp * Math.cos(2 * Math.PI * (doy - fase) / 365) + desvio + (rnd() - 0.5) * 0.6));
-      if (rnd() < 0.02) continue; // lacunas
-      state.vol.push({ carga: idV, res, data: isoOf(t), valor: Math.round(v * 100) / 100, natureza: "sintetico" }); n++;
-    }
-  }
-  state.cargas.push({ id: idV, arquivo: "sintetico_volume.csv", tipo: "VOLUME", sha: null, bytes: 0, lidas: n, validas: n, rejeitadas: [], sintetico: true, em: agoraISO() });
-  audit("demonstracao_sintetica_carregada", { aviso: "valores gerados por fórmula, sem relação com observações reais" });
-}
-
-/* --- renderização --- */
-function render() { renderFontesAuto(); renderBanner(); renderStepper(); renderProv(); renderStore(); renderCards(); renderCharts(); renderAudit(); }
-
-function renderBanner() {
-  const b = $("modeBanner");
-  const ev = enosVigente(), volReal = state.vol.some(o => o.natureza !== "sintetico"), enosReal = ev.carga && !ev.carga.sintetico;
-  if (haSintetico()) {
-    b.className = "banner synth";
-    b.replaceChildren(el("span", { class: "pill synth", text: "SINTÉTICO" }), el("span", {}, "Demonstração com dados gerados por fórmula, só para mostrar o pipeline funcionando. ",
-      el("strong", { text: "Nada aqui é observação real." }), ` Carregue os arquivos oficiais na etapa 1 para substituir: ENOS ${enosReal ? "real ✓" : "sintético"}, volume ${volReal ? "real ✓" : "sintético"}.`));
-  } else if (enosReal || volReal) {
-    b.className = "banner real";
-    const origem = publicado ? `Dados coletados pelo pipeline automático (execução de ${(publicado.gerado_em || "").replace("T", " ").replace("+00:00", " UTC")}) e por arquivos carregados aqui.` : "Usando apenas arquivos carregados por você.";
-    b.replaceChildren(el("span", { class: "pill ok", text: "DADOS REAIS" }), el("span", { text: `${origem} ENOS: ${enosReal ? ev.carga.arquivo : "não carregado"}. Volume: ${volReal ? "carregado" : "não carregado"}.` }));
-  } else {
-    b.className = "banner warnb";
-    b.replaceChildren(el("span", { class: "pill warn", text: "SEM DADOS" }), el("span", { text: "Nenhum dado carregado. Comece pela etapa 1." }));
-  }
-}
-
-function renderStepper() {
-  const ev = enosVigente(), nVol = ["descoberto", "santa_maria"].reduce((s, r) => s + volVigente(r).length, 0);
-  const rej = state.cargas.reduce((s, c) => s + (c.rejeitadas?.length || 0), 0);
-  const temInd = nVol > 0;
-  const steps = [
-    ["Coleta", `${state.cargas.length} carga(s)`, state.cargas.length ? "done" : "wait"],
-    ["Processamento", rej ? `${rej} linha(s) rejeitada(s)` : state.cargas.length ? "sem rejeições" : "aguardando", rej ? "alert" : state.cargas.length ? "done" : "wait"],
-    ["Armazenamento", `${ev.serie.length + nVol} registros`, ev.serie.length + nVol ? "done" : "wait"],
-    ["Análise", ev.serie.length || nVol ? "séries e defasagens" : "aguardando", ev.serie.length || nVol ? "done" : "wait"],
-    ["Indicadores", temInd ? "enquadramento e trajetória" : "precisa de volume", temInd ? "done" : "wait"],
-    ["Disponibilização", `${state.audit.length} evento(s) auditados`, state.audit.length ? "done" : "wait"],
-  ];
-  $("stepper").replaceChildren(...steps.map(([nm, st, cls], i) => el("div", { class: "step " + cls }, el("span", { class: "n", text: `ETAPA ${i + 1}` }), el("span", { class: "nm", text: nm }), el("span", { class: "st", text: st }))));
-}
-
-function natPill(c) { return c.sintetico ? el("span", { class: "pill synth", text: "sintético" }) : el("span", { class: "pill ok", text: "oficial" }); }
-function renderProv() {
-  if (!state.cargas.length) { $("provBody").replaceChildren(el("tr", {}, el("td", { colspan: 9, class: "empty", text: "Nenhuma carga ainda." }))); $("rejeicoes").replaceChildren(); return; }
-  $("provBody").replaceChildren(...state.cargas.slice().reverse().map(c => el("tr", {},
-    el("td", { class: "n", text: c.id }), el("td", { text: c.arquivo }), el("td", { text: c.tipo === "ENOS" ? c.indicador : "Volume útil" }),
-    el("td", { class: "mono", text: c.sha ? c.sha.slice(0, 12) + "…" : (c.sintetico ? "gerado" : "indisponível") }),
-    el("td", { class: "n", text: c.lidas }), el("td", { class: "n", text: c.validas }), el("td", { class: "n", text: c.rejeitadas?.length || 0 }),
-    el("td", {}, natPill(c)), el("td", { class: "small", text: c.em }))));
-  const comRej = state.cargas.filter(c => c.rejeitadas?.length);
-  $("rejeicoes").replaceChildren(...comRej.slice(-3).map(c => {
-    const motivos = {}; c.rejeitadas.forEach(r => motivos[r.motivo] = (motivos[r.motivo] || 0) + 1);
-    const ex = c.rejeitadas.slice(0, 3).map(r => `linha ${r.linha}: ${r.motivo}${r.bruto !== "" && r.bruto != null ? ` (“${String(r.bruto).slice(0, 30)}”)` : ""}`).join("; ");
-    return el("p", {}, el("strong", { text: `Carga ${c.id} · rejeições: ` }), Object.entries(motivos).map(([m, n]) => `${m} (${n})`).join(", "), el("br"), el("span", { class: "muted", text: "Exemplos: " + ex }));
-  }));
-}
-
-function renderStore() {
-  const rows = [];
-  const ev = enosVigente();
-  if (ev.serie.length) {
-    const prov = ev.serie.filter(p => p.natureza === "estimado_provisorio").length;
-    rows.push(["indice_enos", ev.carga.indicador, ev.serie.length, `${ev.serie[0].estacao}/${ev.serie[0].ano} – ${ev.serie.at(-1).estacao}/${ev.serie.at(-1).ano}`, "0 (validado contínuo)", ev.carga.sintetico ? "sintético" : `observado; ${prov} provisória(s)`, state.cargas.filter(c => c.tipo === "ENOS" && c.validas).length]);
-  }
-  for (const r of ["descoberto", "santa_maria"]) {
-    const s = volVigente(r); if (!s.length) continue;
-    rows.push(["serie_observada", "Volume útil · " + NOMES[r], s.length, `${fmtData(s[0].data)} – ${fmtData(s.at(-1).data)}`, `${contarLacunas(s)} dia(s)`, s.some(o => o.natureza === "sintetico") ? "sintético" : "observado", new Set(state.vol.filter(o => o.res === r).map(o => o.carga)).size]);
-  }
-  $("storeBody").replaceChildren(...(rows.length ? rows.map(r => el("tr", {}, ...r.map((v, i) => el("td", { class: [2, 6].includes(i) ? "n" : "", text: v })))) : [el("tr", {}, el("td", { colspan: 7, class: "empty", text: "Base vazia." }))]));
-}
-
-function renderCards() {
-  $("refDate").textContent = `Data de referência: ${fmtData(HOJE)}`;
-  const ev = enosVigente();
-  const cards = [];
-  for (const r of ["descoberto", "santa_maria"]) {
-    const s = volVigente(r);
-    if (!s.length) { cards.push(el("div", { class: "card" }, el("h3", { text: NOMES[r] }), el("p", { class: "empty", text: "Sem observação de volume útil. Carregue a planilha na etapa 1." }))); continue; }
-    const u = s.at(-1), sint = u.natureza === "sintetico";
-    const defas = Math.round((tOf(HOJE) - tOf(u.data)) / DIA);
-    const eq = enquadrar(r, HOJE, u.valor);
-    const eqObs = enquadrar(r, u.data, u.valor);
-    const tr = trajetoria(s, r);
-    const ressalvas = [];
-    if (defas > 7) ressalvas.push(`Observação com ${defas} dias de defasagem: não retrata a situação atual.`);
-    if (eqObs.mes !== eq.mes) ressalvas.push(`Observação de outro mês: no mês da observação o estado seria ${eqObs.estado}.`);
-    let trTxt;
-    if (!tr || tr.insuficiente) trTxt = `Insuficiente: ${tr ? tr.n : 0} observações nos últimos 30 dias (mínimo 10).`;
-    else {
-      const c = tr.cruzamentos;
-      trTxt = `${fmt(tr.slope, 2)} p.p./dia (n = ${tr.n}). ` + (c.vermelho ? `Mantida a tendência, cruzaria o limiar Vermelho em ${c.vermelho.dias} dias (${fmtData(c.vermelho.data)}).` : c.amarelo ? `Mantida a tendência, cruzaria o limiar Amarelo em ${c.amarelo.dias} dias (${fmtData(c.amarelo.data)}).` : "Sem cruzamento de limiar em 90 dias mantida a tendência.");
-    }
-    cards.push(el("div", { class: "card eh-" + eq.estado },
-      el("div", { class: "row", style: "justify-content:space-between" }, el("h3", { text: NOMES[r] }), sint ? el("span", { class: "pill synth", text: "SINTÉTICO" }) : u.natureza === "estimado" ? el("span", { class: "pill warn", text: "estimado" }) : el("span", { class: "pill ok", text: "observado" })),
-      el("div", { class: "row", style: "align-items:baseline;gap:14px" }, el("span", { class: "big" }, fmt(u.valor), el("small", { text: " % volume útil" })), el("span", { class: "state " + eq.estado, text: "Estado indicativo: " + eq.estado })),
-      el("dl", { class: "kv" },
-        el("dt", { text: "Observação" }), el("dd", { text: `${fmtData(u.data)} · ${defas} dia(s) atrás` }),
-        ...(u.natureza === "estimado" && u.valor_sar != null ? [el("dt", { text: "Base SAR/ANA" }), el("dd", { text: `${fmt(u.valor_sar)}% publicado pela ANA; convertido para a base da ADASA` })] : []),
-        el("dt", { text: `Limiares de ${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][eq.mes - 1]}` }), el("dd", { text: `Amarelo < ${eq.amarelo}% · Vermelho < ${eq.vermelho}%` }),
-        el("dt", { text: "Margem" }), el("dd", { text: `${fmt(eq.margemAmarelo)} p.p. do Amarelo · ${fmt(eq.margemVermelho)} p.p. do Vermelho` }),
-        el("dt", { text: "Trajetória (30 d)" }), el("dd", { text: trTxt }),
-        el("dt", { text: "Saída do sistema" }), el("dd", { text: sint ? "demonstração, sem efeito" : "encaminhamento para análise humana" }),
-      ),
-      u.natureza === "estimado" ? el("p", { class: "small", style: "color:var(--warn)", text: "Volume útil estimado na base da ADASA a partir da cota do SAR/ANA (conversão calibrada em 6 datas divulgadas pela ADASA, erro máximo 0,26 p.p.). Confirme com o valor oficial da ADASA." }) : null,
-      ressalvas.length ? el("p", { class: "small", style: "color:var(--warn)", text: ressalvas.join(" ") }) : null,
-      el("p", { class: "note", text: "Fundamento: Res. ADASA nº 56/2025, art. 1º (Tabela 1) e art. 2º. Autoridade: ADASA. Vigência e texto integral pendentes de revisão jurídica." })
-    ));
-  }
-  if (ev.serie.length) {
-    const f = classificarFases(ev.serie), u = f.at(-1);
-    const nomesF = { el_nino: "El Niño", la_nina: "La Niña", neutro: "Neutro" };
-    cards.push(el("div", { class: "card" },
-      el("div", { class: "row", style: "justify-content:space-between" }, el("h3", { text: `ENOS · ${ev.carga.indicador}` }), ev.carga.sintetico ? el("span", { class: "pill synth", text: "SINTÉTICO" }) : el("span", { class: "pill ok", text: "NOAA/CPC" })),
-      el("div", { class: "row", style: "align-items:baseline;gap:14px" }, el("span", { class: "big" }, (u.valor > 0 ? "+" : "") + fmt(u.valor), el("small", { text: " °C" })), el("span", { class: "state", text: nomesF[u.condicao] })),
-      el("dl", { class: "kv" },
-        el("dt", { text: "Estação" }), el("dd", { text: `${u.estacao} ${u.ano}${u.natureza === "estimado_provisorio" ? " · provisória" : ""}` }),
-        el("dt", { text: "Episódio" }), el("dd", { text: u.condicao === "neutro" ? "nenhum em curso" : u.confirmado ? nomesF[u.episodio] + " confirmado" : `${nomesF[u.condicao]} em curso, ainda sem 5 estações` }),
-        el("dt", { text: "Arquivo" }), el("dd", { text: ev.carga.arquivo }),
-      ),
-      el("p", { class: "note", text: "Fase do Pacífico tropical. O efeito sobre o DF é hipótese em teste, não premissa." })
-    ));
-  }
-  $("cards").replaceChildren(...cards);
-}
-
-let spanDias = 0;
-function tickData(v) { const d = new Date(v), mm = String(d.getUTCMonth() + 1).padStart(2, "0"), yy = String(d.getUTCFullYear()).slice(2); return spanDias < 400 ? `${String(d.getUTCDate()).padStart(2, "0")}/${mm}` : `${mm}/${yy}`; }
-function alfa(cor, a) { return /^#[0-9a-f]{6}$/i.test(cor) ? cor + a : cor; }
-function baseOpts() {
-  const ink = css("--muted"), grid = css("--line");
-  return { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "nearest", intersect: false },
-    plugins: { legend: { labels: { color: ink, boxWidth: 14, font: { family: "IBM Plex Sans" } } } },
-    scales: { x: { ticks: { color: ink }, grid: { color: grid } }, y: { ticks: { color: ink }, grid: { color: grid } } } };
-}
-function mkChart(id, cfg) { if (!window.Chart) return; if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
-
-function renderCharts() {
-  if (!window.Chart) { ["chVol", "chEnos", "chLag"].forEach(id => $(id).replaceWith(el("p", { class: "empty", text: "Biblioteca de gráficos não carregou." }))); return; }
-  // Volume × limiares (janela de anos; lacunas > 15 dias interrompem a linha)
-  const sTodo = volVigente(resAtivo);
-  const corte = janelaAnos && sTodo.length ? tOf(sTodo.at(-1).data) - janelaAnos * 365.25 * DIA : -Infinity;
-  const s = sTodo.filter(x => tOf(x.data) >= corte);
-  const comLacunas = (arr, f) => { const out = []; for (let i = 0; i < arr.length; i++) { if (i && tOf(arr[i].data) - tOf(arr[i - 1].data) > 15 * DIA) out.push({ x: tOf(arr[i].data) - DIA, y: null }); out.push({ x: tOf(arr[i].data), y: f(arr[i]) }); } return out; };
-  $("wmVol").textContent = s.some(o => o.natureza === "sintetico") ? "SINTÉTICO" : "";
-  const limPts = est => {
-    if (!s.length) return [];
-    const pts = []; const a = new Date(tOf(s[0].data)), b = tOf(s.at(-1).data);
-    for (let y = a.getUTCFullYear(), m = a.getUTCMonth(); Date.UTC(y, m, 1) <= b; m++, (m > 11 && (m = 0, y++))) pts.push({ x: Math.max(Date.UTC(y, m, 1), tOf(s[0].data)), y: ADASA[resAtivo][est][m] });
-    pts.push({ x: b, y: pts.at(-1).y }); return pts;
-  };
-  spanDias = s.length ? (tOf(s.at(-1).data) - tOf(s[0].data)) / DIA : 0;
-  const o = baseOpts();
-  o.scales.x = { ...o.scales.x, type: "linear", ticks: { ...o.scales.x.ticks, callback: tickData, maxTicksLimit: 10 } };
-  o.scales.y = { ...o.scales.y, min: 0, max: 100, title: { display: true, text: "% do volume útil", color: css("--muted") } };
-  o.plugins.tooltip = { callbacks: { title: it => fmtData(isoOf(it[0].parsed.x)), label: it => `${it.dataset.label}: ${fmt(it.parsed.y)}%` } };
-  mkChart("chVol", { type: "line", data: { datasets: [
-    { label: (s.some(x => x.natureza === "estimado") ? "Volume útil estimado (base ADASA) " : "Volume útil ") + NOMES[resAtivo], data: comLacunas(s, x => x.valor), spanGaps: false, borderColor: css("--accent"), backgroundColor: alfa(css("--accent"), "22"), fill: "origin", borderWidth: 1.8, pointRadius: 0, order: 3 },
-    ...(s.some(x => x.natureza === "estimado" && x.valor_sar != null) ? [{ label: "Percentual SAR/ANA (outra base)", data: comLacunas(s.filter(x => x.valor_sar != null), x => x.valor_sar), spanGaps: false, borderColor: css("--muted"), borderWidth: 1, borderDash: [2, 3], pointRadius: 0, fill: false, order: 2 }] : []),
-    { label: "Amarelo, Res. 56/2025 (<)", data: limPts("amarelo"), stepped: true, borderColor: css("--eh-amarelo"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
-    { label: "Vermelho, Res. 56/2025 (<)", data: limPts("vermelho"), stepped: true, borderColor: css("--eh-vermelho"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
-  ] }, options: o });
-
-  // ENOS
-  const ev = enosVigente();
-  $("wmEnos").textContent = ev.carga?.sintetico ? "SINTÉTICO" : "";
-  $("enosTitle").textContent = `ENOS · ${ev.carga?.indicador || "RONI"} (últimos 25 anos)`;
-  const f = classificarFases(ev.serie).slice(-300);
-  const cor = c => c === "el_nino" ? css("--crit") : c === "la_nina" ? css("--accent") : css("--line");
-  const oe = baseOpts();
-  oe.plugins.legend = { display: false };
-  oe.scales.x.ticks = { ...oe.scales.x.ticks, autoSkip: false, maxRotation: 0, callback: (v, i) => f[i] && f[i].estacao === "DJF" && f[i].ano % 5 === 0 ? String(f[i].ano) : "" };
-  oe.scales.x.grid = { display: false };
-  oe.scales.y.title = { display: true, text: "°C", color: css("--muted") };
-  oe.plugins.tooltip = { callbacks: { label: it => { const p = f[it.dataIndex]; return `${p.valor > 0 ? "+" : ""}${fmt(p.valor)} °C · ${p.condicao.replace("_", " ")}${p.natureza === "estimado_provisorio" ? " · provisório" : ""}`; } } };
-  mkChart("chEnos", { type: "bar", data: { labels: f.map(p => `${p.estacao} ${p.ano}`), datasets: [{ data: f.map(p => p.valor), backgroundColor: f.map(p => cor(p.condicao)), barPercentage: 1, categoryPercentage: 1 }] }, options: oe });
-
-  // Defasagens
-  const sv = volVigente(resAtivo);
-  const cd = ev.serie.length && sv.length ? correlacaoDefasada(ev.serie, sv) : null;
-  const sintLag = ev.carga?.sintetico || sv.some(x => x.natureza === "sintetico");
-  $("wmLag").textContent = sintLag ? "SINTÉTICO" : "";
-  const ol = baseOpts();
-  ol.plugins.legend = { display: false };
-  ol.scales.y = { ...ol.scales.y, min: -1, max: 1, title: { display: true, text: "r de Pearson", color: css("--muted") } };
-  ol.scales.x.title = { display: true, text: "defasagem do RONI (meses)", color: css("--muted") };
-  const ok = cd && cd.meses >= 36;
-  ol.plugins.tooltip = { callbacks: { label: it => { const p = cd.porLag[it.dataIndex]; return `r = ${p.r == null ? "—" : p.r.toFixed(2)} · n = ${p.n} meses`; } } };
-  mkChart("chLag", { type: "bar", data: { labels: (cd?.porLag || []).map(p => p.lag), datasets: [{ data: ok ? cd.porLag.map(p => p.r) : [], backgroundColor: css("--accent") }] }, options: ol });
-  $("lagNote").textContent = (ok ? `${NOMES[resAtivo]}: ${cd.meses} meses com anomalia calculada. ` : `Precisa de pelo menos 36 meses de volume (com 10+ dias por mês) sobrepostos ao ENOS; há ${cd ? cd.meses : 0}. `) +
-    "Correlação de Pearson entre o RONI de k meses antes e a anomalia mensal de volume. Autocorrelação infla a aparência de significância; não é causalidade nem ganho preditivo (isso é o experimento A × B).";
-}
-
-function renderAudit() {
-  $("auditLog").textContent = state.audit.length ? state.audit.slice().reverse().map(a => `${a.em}  ${a.acao}  ${JSON.stringify(a.det)}`).join("\n") : "Nenhum evento.";
-}
-
-function indicadoresJSON() {
-  const out = { gerado_em: agoraISO(), data_referencia: HOJE, aviso: "Indicativo; não constitui ato administrativo nem estado oficial.", norma: "Res. ADASA nº 56/2025, Tabela 1", reservatorios: {}, enos: null };
-  for (const r of ["descoberto", "santa_maria"]) {
-    const s = volVigente(r); if (!s.length) continue;
-    const u = s.at(-1);
-    out.reservatorios[r] = { ultima_observacao: u, enquadramento_indicativo: enquadrar(r, HOJE, u.valor), trajetoria_30d: trajetoria(s, r), natureza: u.natureza };
-  }
-  const ev = enosVigente();
-  if (ev.serie.length) { const u = classificarFases(ev.serie).at(-1); out.enos = { indicador: ev.carga.indicador, arquivo: ev.carga.arquivo, sha256: ev.carga.sha, sintetico: ev.carga.sintetico, ultima: u }; }
+function serie(res) {
+  const s = P.series[res]; const out = [];
+  for (let i = 0; i < s.d.length; i++) if (s.v[i] != null) out.push({ d: s.d[i], v: s.v[i], s: s.s[i] });
   return out;
 }
-
-async function copiar(btn, texto) {
-  const orig = btn.textContent;
-  try { await navigator.clipboard.writeText(texto); btn.textContent = "Copiado"; } catch { btn.textContent = "Cópia bloqueada"; }
-  setTimeout(() => btn.textContent = orig, 2200);
+function valorEm(arr, iso, tolerancia = 3) {
+  const t = tOf(iso); let melhor = null;
+  for (const o of arr) { const dd = Math.abs(tOf(o.d) - t) / DIA; if (dd <= tolerancia && (!melhor || dd < melhor.dd)) melhor = { ...o, dd }; }
+  return melhor;
+}
+function tendencia(arr) {
+  const u = tOf(arr.at(-1).d); const j = arr.filter(o => tOf(o.d) > u - 30 * DIA);
+  if (j.length < 10) return null;
+  const xs = j.map(o => (tOf(o.d) - u) / DIA), ys = j.map(o => o.v);
+  const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+  let sxy = 0, sxx = 0; xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+  return sxx ? sxy / sxx : null;
 }
 
-/* --- eventos --- */
-function ligarDrop(labelId, inputId, fn) {
-  const lb = $(labelId), inp = $(inputId);
-  inp.addEventListener("change", () => { if (inp.files[0]) fn(inp.files[0]); inp.value = ""; });
-  lb.addEventListener("dragover", e => { e.preventDefault(); lb.classList.add("drag"); });
-  lb.addEventListener("dragleave", () => lb.classList.remove("drag"));
-  lb.addEventListener("drop", e => { e.preventDefault(); lb.classList.remove("drag"); if (e.dataTransfer.files[0]) fn(e.dataTransfer.files[0]); });
-}
-ligarDrop("dropEnos", "fileEnos", ingerirEnos);
-ligarDrop("dropVol", "fileVol", lerVolume);
-$("mapGo").addEventListener("click", processarPendente);
-$("mapCancel").addEventListener("click", () => { pendente = null; $("mapper").hidden = true; });
-document.querySelectorAll(".tabs button[data-res]").forEach(b => b.addEventListener("click", () => {
-  resAtivo = b.dataset.res; document.querySelectorAll(".tabs button[data-res]").forEach(x => x.setAttribute("aria-pressed", x === b)); renderCharts();
-}));
-document.querySelectorAll(".tabs button[data-anos]").forEach(b => b.addEventListener("click", () => {
-  janelaAnos = +b.dataset.anos; document.querySelectorAll(".tabs button[data-anos]").forEach(x => x.setAttribute("aria-pressed", x === b)); renderCharts();
-}));
-$("persist").addEventListener("change", () => {
-  try { localStorage.setItem(KEY + "_on", $("persist").checked ? "1" : "0"); if (!$("persist").checked) localStorage.removeItem(KEY); } catch {}
-  salvar(); $("storeMsg").textContent = $("persist").checked ? "Os dados ficam só neste navegador; outra pessoa ou dispositivo não os vê." : "";
-});
-$("copyDb").addEventListener("click", e => copiar(e.currentTarget, JSON.stringify(state, null, 1)));
-$("copyInd").addEventListener("click", e => copiar(e.currentTarget, JSON.stringify(indicadoresJSON(), null, 2)));
-$("copyLog").addEventListener("click", e => copiar(e.currentTarget, $("auditLog").textContent));
-$("clearSynth").addEventListener("click", () => {
-  const ids = new Set(state.cargas.filter(c => c.sintetico).map(c => c.id));
-  state.enos = state.enos.filter(p => !ids.has(p.carga)); state.vol = state.vol.filter(o => !ids.has(o.carga));
-  state.cargas = state.cargas.filter(c => !c.sintetico);
-  audit("dados_sinteticos_removidos", { cargas: [...ids] }); salvar(); render();
-});
-$("clearAll").addEventListener("click", () => { state = { cargas: [], enos: [], vol: [], audit: [] }; audit("base_apagada", {}); salvar(); render(); });
-
-/* --- dados publicados pelo pipeline agendado (mesma origem, GitHub Pages) --- */
-let publicado = null;
-async function carregarPublicado() {
-  const pegar = u => fetch(u, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [enos, vol, st] = await Promise.all(["data/enos.json", "data/volume.json", "data/status.json"].map(pegar));
-  if (!st) return false;
-  publicado = st;
-  if (enos && enos.serie && enos.serie.length) {
-    const id = novoId();
-    state.cargas.push({ id, arquivo: enos.arquivo, tipo: "ENOS", indicador: enos.indicador, sha: enos.sha256, bytes: 0, lidas: enos.serie.length, validas: enos.serie.length, rejeitadas: [], sintetico: false, em: (enos.obtido_em || "").replace("T", " ").replace("+00:00", " UTC"), automatica: true });
-    enos.serie.forEach(p => state.enos.push({ carga: id, ano: p.ano, estacao: p.estacao, mes: p.mes, valor: p.valor, natureza: p.natureza }));
+/* tanque: água até v%, marcas dos limites do mês */
+function tanque(v, am, vm) {
+  const H = 170, top = 10, base = top + H, y = p => base - (p / 100) * H;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 170 200"); svg.setAttribute("class", "tanque"); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `Reservatório com ${fmt(v)}% do volume útil; atenção abaixo de ${am}%, escassez abaixo de ${vm}%`);
+  const add = (tag, a) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+  add("rect", { x: 6, y: top, width: 72, height: H, rx: 10, class: "vidro" });
+  const hv = Math.max(0, Math.min(100, v)) / 100 * H;
+  add("rect", { x: 6, y: base - hv, width: 72, height: hv, rx: hv > 12 ? 10 : 2, class: "agua" });
+  if (hv > 4) add("rect", { x: 6, y: base - hv, width: 72, height: 4, class: "agua-topo" });
+  add("rect", { x: 6, y: top, width: 72, height: H, rx: 10, class: "borda" });
+  // rótulo de atenção acima da marca, de escassez abaixo: não se sobrepõem mesmo com limites próximos
+  for (const [p, cls, tcls, txt, dy] of [[am, "marca-a", "ta", `atenção ${am}%`, -4], [vm, "marca-v", "tv", `escassez ${vm}%`, 13]]) {
+    add("line", { x1: 2, x2: 80, y1: y(p), y2: y(p), class: cls });
+    const t = add("text", { x: 84, y: y(p) + dy, class: tcls }); t.textContent = txt;
   }
-  if (vol && vol.cargas) {
-    const base = novoId();
-    vol.cargas.forEach(c => state.cargas.push({ id: base + c.id, arquivo: c.arquivo, tipo: "VOLUME", sha: c.sha256, bytes: 0, lidas: c.lidas, validas: c.validas, rejeitadas: c.rejeitadas || [], duplicadas: c.duplicadas, sintetico: false, em: (vol.gerado_em || "").replace("T", " ").replace("+00:00", " UTC"), automatica: true }));
-    vol.obs.forEach(o => state.vol.push({ carga: base + o.carga, res: o.res, data: o.data, valor: o.valor, natureza: o.natureza || "observado", valor_sar: o.valor_sar, metodo: o.metodo }));
-  }
-  audit("dados_publicados_carregados", { gerado_em: st.gerado_em, fontes: st.fontes.map(f => `${f.id}:${f.status}`) });
-  return true;
-}
-function renderFontesAuto() {
-  const tb = $("fontesAuto");
-  if (!publicado) { tb.replaceChildren(el("tr", {}, el("td", { colspan: 4, class: "empty", text: "Sem dados publicados nesta hospedagem: use os arquivos abaixo ou a demonstração." }))); return; }
-  const cls = { verificado: "ok", falha: "crit", sem_credencial: "mute", sem_dados: "warn", nao_verificado: "mute" };
-  tb.replaceChildren(...publicado.fontes.map(f => el("tr", {},
-    el("td", {}, f.url ? el("a", { href: f.url, text: f.nome }) : f.nome),
-    el("td", {}, el("span", { class: "pill " + (cls[f.status] || "mute"), text: f.status.replace("_", " ") })),
-    el("td", { class: "small", text: (f.verificado_em || "").replace("T", " ").replace("+00:00", " UTC") }),
-    el("td", { class: "small", text: f.mensagem || "" }))));
+  return svg;
 }
 
-/* --- início --- */
+function render() {
+  const ind = P.indicadores.reservatorios || {};
+  const ref = (P.indicadores.data_referencia || P.gerado_em.slice(0, 10));
+  const mes = +ref.slice(5, 7) - 1;
+  $("dataRef").textContent = `Atualizado em ${dataLonga(ref)}`;
+
+  // cartões
+  const estados = {};
+  const cards = [];
+  for (const res of ["descoberto", "santa_maria"]) {
+    const arr = serie(res);
+    if (!arr.length) { cards.push(el("article", { class: "res" }, el("div", {}, el("h2", { text: INFO[res].nome }), el("p", { class: "rotulo", text: "Sem dados no momento." })))); continue; }
+    const u = arr.at(-1), am = ADASA[res].amarelo[mes], vm = ADASA[res].vermelho[mes];
+    const est = estadoDe(res, ref, u.v); estados[res] = est;
+    const ano = valorEm(arr, `${+u.d.slice(0, 4) - 1}${u.d.slice(4)}`);
+    const tend = tendencia(arr);
+    const estimado = P.series[res].natureza === "estimado";
+    const itens = [
+      el("li", {}, "Limite de atenção em ", MESES[mes], ": ", el("b", { text: `${am}%` })),
+      el("li", {}, "Folga até a atenção: ", el("b", { text: `${fmt(u.v - am)} pontos` })),
+    ];
+    if (ano) itens.push(el("li", {}, "Há um ano: ", el("b", { text: `${fmt(ano.v)}%` })));
+    if (tend != null) itens.push(el("li", {}, "Últimos 30 dias: ", el("b", { text: Math.abs(tend) < 0.02 ? "estável" : tend > 0 ? `subindo ${fmt(tend, 2)} ponto/dia` : `caindo ${fmt(-tend, 2)} ponto/dia` })));
+    cards.push(el("article", { class: "res" },
+      tanque(u.v, am, vm),
+      el("div", {},
+        el("h2", { text: INFO[res].nome }),
+        el("p", { class: "abastece", text: INFO[res].abastece }),
+        el("div", { class: "pct" }, fmt(u.v), el("small", { text: "%" })),
+        el("p", { class: "rotulo", text: `do volume útil em ${u.d.split("-").reverse().join("/")}` }),
+        el("span", { class: "chip " + est, text: ESTADO[est].nome }),
+        el("ul", {}, ...itens),
+        estimado ? el("p", { class: "nota", text: `Valor estimado na base de cálculo da ADASA a partir da medição da ANA (que publica ${fmt(u.s)}%). Ver detalhes técnicos.` }) : null,
+      )));
+  }
+  $("cards").replaceChildren(...cards);
+
+  // manchete
+  const pior = ["vermelho", "amarelo", "verde"].find(e => Object.values(estados).includes(e));
+  const nomesCom = e => Object.entries(estados).filter(([, x]) => x === e).map(([r]) => INFO[r].nome);
+  const h = $("manchete");
+  if (pior === "verde") {
+    h.replaceChildren("Os reservatórios do DF estão em ", el("span", { class: "tom", text: "situação normal" }), ` para ${MESES[mes]}.`);
+    $("subManchete").textContent = `Descoberto e Santa Maria estão acima dos limites de atenção definidos pela ADASA para ${MESES[mes]}.`;
+  } else if (pior) {
+    const nomes = nomesCom(pior);
+    h.replaceChildren(nomes.join(" e ") + (nomes.length > 1 ? " estão " : " está ") + "em ", el("span", { class: "tom " + pior, text: ESTADO[pior].frase }), ".");
+    $("subManchete").textContent = `Comparação com os limites da Resolução ADASA nº 56/2025 para ${MESES[mes]}. O estado oficial é divulgado pela ADASA.`;
+  }
+
+  // mesmo dia em anos anteriores
+  const md = ref.slice(5);
+  $("tituloAnos").textContent = `Em ${+md.slice(3)} de ${MESES[mes]}, em outros anos`;
+  $("anos").replaceChildren(...["descoberto", "santa_maria"].map(res => {
+    const arr = serie(res); const anoRef = +ref.slice(0, 4); const linhas = [];
+    for (let a = anoRef; a >= anoRef - 9; a--) {
+      const o = valorEm(arr, `${a}-${md}`);
+      linhas.push(el("div", { class: "barra" + (a === anoRef ? " atual" : "") },
+        el("span", { class: "ano", text: a }),
+        el("div", { class: "trilho" }, o ? el("div", { class: "cheio", style: `width:${Math.max(0, Math.min(100, o.v))}%` }) : null),
+        el("span", { class: o ? "" : "ano", text: o ? `${fmt(o.v, 0)}%` : "—" })));
+    }
+    return el("div", { class: "painel" }, el("h3", { text: INFO[res].nome }), ...linhas);
+  }));
+
+  graficoVolume();
+  renderEnos();
+}
+
+function graficoVolume() {
+  if (!window.Chart) return;
+  const todo = serie(resAtivo); if (!todo.length) return;
+  const fim = tOf(todo.at(-1).d), ini = anosAtivo ? fim - anosAtivo * 365.25 * DIA : tOf(todo[0].d);
+  const arr = todo.filter(o => tOf(o.d) >= ini);
+  const linha = []; arr.forEach((o, i) => { if (i && tOf(o.d) - tOf(arr[i - 1].d) > 15 * DIA) linha.push({ x: tOf(o.d) - DIA, y: null }); linha.push({ x: tOf(o.d), y: o.v }); });
+  const faixa = est => { const pts = []; const a = new Date(ini); let y = a.getUTCFullYear(), m = a.getUTCMonth();
+    while (Date.UTC(y, m, 1) <= fim) { pts.push({ x: Math.max(Date.UTC(y, m, 1), ini), y: ADASA[resAtivo][est][m] }); if (++m > 11) { m = 0; y++; } }
+    pts.push({ x: fim, y: pts.at(-1).y }); return pts; };
+  const alpha = (c, a) => /^#[0-9a-f]{6}$/i.test(c) ? c + a : c;
+  const tick = v => { const d = new Date(v); return anosAtivo === 1 ? MESES[d.getUTCMonth()].slice(0, 3) + "/" + String(d.getUTCFullYear()).slice(2) : String(d.getUTCFullYear()); };
+  const cfg = {
+    type: "line",
+    data: { datasets: [
+      { label: "Escassez", data: faixa("vermelho"), stepped: true, fill: "origin", backgroundColor: alpha(css("--vermelho"), "33"), borderWidth: 0, pointRadius: 0, order: 4 },
+      { label: "Atenção", data: faixa("amarelo"), stepped: true, fill: "-1", backgroundColor: alpha(css("--amarelo"), "40"), borderWidth: 0, pointRadius: 0, order: 3 },
+      { label: "Normal", data: [{ x: ini, y: 100 }, { x: fim, y: 100 }], fill: "-1", backgroundColor: alpha(css("--verde"), "22"), borderWidth: 0, pointRadius: 0, order: 2 },
+      { label: INFO[resAtivo].nome, data: linha, borderColor: css("--water-deep"), borderWidth: 2.5, pointRadius: 0, fill: false, spanGaps: false, order: 1 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "nearest", axis: "x", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { filter: it => it.datasetIndex === 3,
+        callbacks: { title: it => new Date(it[0].parsed.x).toISOString().slice(0, 10).split("-").reverse().join("/"),
+                     label: it => ` ${fmt(it.parsed.y)}% · ${ESTADO[estadoDe(resAtivo, new Date(it.parsed.x).toISOString().slice(0, 10), it.parsed.y)].nome}` } } },
+      scales: {
+        x: { type: "linear", min: ini, max: fim, ticks: { color: css("--muted"), callback: tick, maxTicksLimit: anosAtivo === 1 ? 7 : 10 }, grid: { display: false } },
+        y: { min: 0, max: 100, ticks: { color: css("--muted"), callback: v => v + "%", stepSize: 25 }, grid: { color: css("--line") } } } },
+  };
+  if (graficos.vol) graficos.vol.destroy();
+  graficos.vol = new Chart($("grafVolume"), cfg);
+}
+
+function renderEnos() {
+  const E = P.enos; if (!E || !E.serie.length) { $("enosTexto").textContent = "Índice indisponível no momento."; return; }
+  const u = E.serie.at(-1);
+  const nomeEst = { DJF: "dez–fev", JFM: "jan–mar", FMA: "fev–abr", MAM: "mar–mai", AMJ: "abr–jun", MJJ: "mai–jul", JJA: "jun–ago", JAS: "jul–set", ASO: "ago–out", SON: "set–nov", OND: "out–dez", NDJ: "nov–jan" };
+  $("enosValor").replaceChildren((u.valor > 0 ? "+" : "") + fmt(u.valor), el("small", { text: " °C" }));
+  const quente = u.condicao === "el_nino", frio = u.condicao === "la_nina";
+  $("enosFase").textContent = quente ? (u.confirmado ? "El Niño" : "El Niño em formação") : frio ? (u.confirmado ? "La Niña" : "La Niña em formação") : "Neutro";
+  $("enosFase").style.color = quente ? css("--quente") : frio ? css("--frio") : css("--ink");
+  $("enosTexto").textContent = `O Pacífico tropical ficou ${fmt(Math.abs(u.valor))} °C ${u.valor >= 0 ? "acima" : "abaixo"} do normal na média de ${nomeEst[u.estacao]} de ${u.ano}.` +
+    (quente && !u.confirmado ? " Para o NOAA confirmar um episódio, são precisos 5 trimestres seguidos acima de +0,5 °C." : "") +
+    " Fonte: NOAA, índice RONI.";
+  // escala
+  const s = $("enosEscala"); s.replaceChildren();
+  const ns = "http://www.w3.org/2000/svg", X = v => 10 + (Math.max(-2.5, Math.min(2.5, v)) + 2.5) / 5 * 400;
+  const add = (tag, a, txt) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, a[k]); if (txt) e.textContent = txt; s.append(e); return e; };
+  add("rect", { x: X(-2.5), y: 22, width: X(-0.5) - X(-2.5), height: 14, rx: 7, fill: css("--frio"), "fill-opacity": 0.35 });
+  add("rect", { x: X(-0.5), y: 22, width: X(0.5) - X(-0.5), height: 14, fill: css("--line") });
+  add("rect", { x: X(0.5), y: 22, width: X(2.5) - X(0.5), height: 14, rx: 7, fill: css("--quente"), "fill-opacity": 0.35 });
+  add("text", { x: X(-1.5), y: 14, "text-anchor": "middle", class: "lbl" }, "La Niña");
+  add("text", { x: X(0), y: 14, "text-anchor": "middle", class: "lbl" }, "Neutro");
+  add("text", { x: X(1.5), y: 14, "text-anchor": "middle", class: "lbl" }, "El Niño");
+  for (const v of [-2, -1, 0, 1, 2]) add("text", { x: X(v), y: 54, "text-anchor": "middle" }, (v > 0 ? "+" : "") + v);
+  add("circle", { cx: X(u.valor), cy: 29, r: 9, fill: css("--surface"), stroke: css("--ink"), "stroke-width": 3 });
+  // gráfico
+  if (!window.Chart) return;
+  const ult = E.serie.slice(-60);
+  if (graficos.enos) graficos.enos.destroy();
+  graficos.enos = new Chart($("grafEnos"), { type: "bar",
+    data: { labels: ult.map(p => `${p.estacao} ${p.ano}`), datasets: [{ data: ult.map(p => p.valor),
+      backgroundColor: ult.map(p => p.condicao === "el_nino" ? css("--quente") : p.condicao === "la_nina" ? css("--frio") : css("--line")), borderRadius: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: it => ` ${it.parsed.y > 0 ? "+" : ""}${fmt(it.parsed.y)} °C` } } },
+      scales: { x: { grid: { display: false }, ticks: { color: css("--muted"), autoSkip: false, maxRotation: 0, callback: (v, i) => ult[i].estacao === "DJF" ? String(ult[i].ano) : "" } },
+                y: { grid: { color: css("--line") }, ticks: { color: css("--muted"), callback: v => (v > 0 ? "+" : "") + v + "°" } } } } });
+}
+
+document.querySelectorAll("[data-res]").forEach(b => b.addEventListener("click", () => {
+  resAtivo = b.dataset.res; document.querySelectorAll("[data-res]").forEach(x => x.setAttribute("aria-pressed", x === b)); graficoVolume(); }));
+document.querySelectorAll("[data-anos]").forEach(b => b.addEventListener("click", () => {
+  anosAtivo = +b.dataset.anos; document.querySelectorAll("[data-anos]").forEach(x => x.setAttribute("aria-pressed", x === b)); graficoVolume(); }));
+
 (async () => {
-  const salvo = carregarSalvo();
-  const pub = salvo ? false : await carregarPublicado();
-  if (!salvo && !pub) gerarSintetico();
-  render();
+  try {
+    P = window.PAINEL_EMBUTIDO || await fetch("data/painel.json", { cache: "no-store" }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    render();
+  } catch (e) {
+    $("cards").replaceChildren(el("div", { class: "erro" }, "Não foi possível carregar os dados agora. Tente de novo em alguns minutos ou veja os ", el("a", { href: "tecnico.html", text: "detalhes técnicos" }), "."));
+    $("dataRef").textContent = "";
+  }
 })();
 </script>
 </body>

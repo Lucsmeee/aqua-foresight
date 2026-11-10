@@ -183,6 +183,27 @@ def etapa_indicadores(volume: dict, hoje: date, max_defasagem: int) -> dict:
     return out
 
 
+def montar_painel(enos: dict | None, volume: dict, indicadores: dict, status: dict) -> dict:
+    """Arquivo compacto para o painel público: séries por reservatório, ENOS recente e indicadores."""
+    series = {}
+    for res in ("descoberto", "santa_maria"):
+        obs = [o for o in volume["obs"] if o["res"] == res]
+        series[res] = {
+            "d": [o["data"] for o in obs],
+            "v": [o["valor"] for o in obs],
+            "s": [o.get("valor_sar") for o in obs],
+            "natureza": obs[-1].get("natureza") if obs else None,
+        }
+    enos_recente = None
+    if enos:
+        enos_recente = {k: enos[k] for k in ("indicador", "fonte_url", "obtido_em", "periodo_base")}
+        enos_recente["serie"] = [{k: p[k] for k in ("ano", "estacao", "mes", "valor", "condicao", "episodio", "confirmado", "natureza")}
+                                 for p in enos["serie"][-60:]]
+    return {"gerado_em": _agora(), "series": series, "enos": enos_recente, "indicadores": indicadores,
+            "fontes": status["fontes"], "conversao": {"descoberto": {k: volume.get("conversao", {}).get("descoberto", {}).get(k)
+                                                                       for k in ("A", "B")}}}
+
+
 def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = True, settings: Settings | None = None) -> dict:
     settings = settings or Settings()
     hoje = hoje or datetime.now(timezone.utc).date()
@@ -200,9 +221,9 @@ def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = T
     for nome, conteudo in {"enos.json": enos, "volume.json": volume, "telemetria.json": telemetria,
                            "indicadores.json": indicadores, "status.json": status}.items():
         (dados / nome).write_text(json.dumps(conteudo, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    pagina = raiz / "web" / "index.html"
-    if pagina.exists():
-        shutil.copyfile(pagina, saida / "index.html")
+    (dados / "painel.json").write_text(json.dumps(montar_painel(enos, volume, indicadores, status), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    for pagina in sorted((raiz / "web").glob("*.html")):
+        shutil.copyfile(pagina, saida / pagina.name)
     return status
 
 

@@ -2,6 +2,16 @@
 
 Formato inspirado em Keep a Changelog; versionamento semântico.
 
+## [0.3.1] — 2026-11-10
+
+### Alterado
+- Novo painel público (`web/index.html`): frase-resumo do estado dos reservatórios, tanques com marcas de atenção e escassez do mês, gráfico com faixas coloridas (normal/atenção/escassez) e seletor de período, comparação com o mesmo dia em anos anteriores e El Niño explicado em escala simples.
+- Página anterior passou a ser `web/tecnico.html` (detalhes técnicos).
+- `aqua publicar` gera `data/painel.json` compacto e copia todas as páginas de `web/`.
+
+### Corrigido
+- Carga SAR aceita a medição anterior mais próxima (comportamento da API a partir de 2010), que interrompia a carga em 2011.
+
 ## [0.3.0] — 2026-11-10
 
 ### Adicionado

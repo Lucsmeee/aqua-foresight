@@ -1,18 +1,14 @@
 # NEXT_STEPS — próxima execução
 
-## Ações do usuário que destravam
-1. Ativar o GitHub Pages (Settings → Pages → Source: GitHub Actions) e rodar **Actions → Pipeline diário → Run workflow**. Conferir no resumo da execução se o RONI ficou `verificado`.
-2. Pedir credencial da API HidroWebService à ANA (hidro@ana.gov.br) e cadastrar os secrets `ANA_IDENTIFICADOR` e `ANA_SENHA`.
-3. Obter a série histórica diária de volume útil de Descoberto e Santa Maria: SIRH da ADASA ou pedido pela Lei de Acesso à Informação. Enviar a planilha para `data/manual/volume/`.
-4. Enquanto isso, enviar a exportação CSV diária do SAR (módulo DF) para `data/manual/volume/`.
+## Ações do usuário
+1. **Ativar o GitHub Pages**: Settings → Pages → Build and deployment → Source: **GitHub Actions**. Depois, Actions → Pipeline diário → Run workflow.
+2. Opcional: credencial da API HidroWebService (hidro@ana.gov.br) → secrets `ANA_IDENTIFICADOR` e `ANA_SENHA`.
+3. Opcional, recomendado: pedir à ADASA (SIRH ou Lei de Acesso à Informação) a série oficial de volume útil do Descoberto, para validar a conversão estimada.
 
-## Tarefa prioritária da próxima execução
-- Conferir o primeiro resultado real do workflow (status das fontes, RONI publicado) e corrigir o que falhar.
-- Com credencial ANA: confirmar no inventário (`HidroInventarioEstacoes`) os códigos 60435500 e 60477100, a unidade da cota e os parâmetros exigidos pelo Swagger.
-- Com série histórica: análise de defasagens RONI × volume por estação do ano e baseline sem ENOS (Modelo A).
+## Próxima execução
+- Conferir a carga histórica SAR (workflow "Carga histórica"); se não cobriu 1990–2021, redisparar: ela retoma de onde parou.
+- Fase 3: defasagens RONI × anomalia mensal de volume por estação do ano, começando pelo Santa Maria (base igual à ADASA).
+- Fase 4: baseline sem ENOS (Modelo A) com validação rolling-origin.
 
-## Fila seguinte
-- Curva cota-volume oficial (ADASA/Caesb) para converter telemetria em volume útil.
-- Alembic; trilha de auditoria à prova de alteração (hash encadeado).
-- Adaptador Rnino34 mensal; probabilidades ENSO do CPC.
-- Decisão D-04 sobre o parâmetro provisório de defasagem (7 dias).
+## Fila
+- Validar a conversão do Descoberto com série oficial da ADASA; Alembic; auditoria com hash encadeado; Rnino34; probabilidades ENSO.

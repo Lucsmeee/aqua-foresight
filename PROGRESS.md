@@ -51,3 +51,21 @@
 - Download real do CPC e workflow ainda não executados no GitHub (primeira execução após o push).
 - Cliente ANA não testado com credencial real; códigos de estação a confirmar; cota sem curva cota-volume.
 - Série histórica de volume útil do DF ainda sem fonte automatizável.
+
+## Execução 1c — 10/11/2026 · v0.3.0
+
+**Pedido:** buscar todos os dados e versionar para gerar os gráficos.
+
+**Entregue**
+- Repositório no GitHub (Lucsmeee/aqua-foresight) com CI verde (SQLite e PostGIS) e RONI real versionado pelo robô.
+- Workflow de diagnóstico de fontes, usado para localizar a API não documentada do SAR/ANA (restportal) a partir do código do portal.
+- Adaptador SAR/ANA e carga histórica diária desde 1990 em `data/series/sar_df_diario.csv`.
+- Conversão do Descoberto para a base ADASA (calibrada em 6 datas, erro ≤ 0,26 p.p.) e recálculo pela cota; Santa Maria validado como igual à ADASA.
+- Página com dados reais: cartões de situação, gráfico com limiares mensais, seletor de período e lacunas visíveis.
+
+**Achados**
+- API do SAR lê a data como MM/dd/yyyy e devolve a próxima medição disponível; dados esparsos antes dos anos 2000.
+- SIRH/ADASA inacessível a partir do GitHub Actions.
+- Curva cota-volume do Descoberto no SAR mudou entre épocas.
+
+**Validação**: 63 testes; publicação local com dados reais e página renderizada sem erros.

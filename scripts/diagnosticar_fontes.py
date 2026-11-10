@@ -49,6 +49,26 @@ def resumir_json(dados: object) -> None:
     print("  json:", texto[:1500])
 
 
+def listar_formularios(html: str) -> None:
+    for fm in re.finditer(r"(?is)<form\b([^>]*)>(.*?)</form>", html):
+        attrs, corpo = fm.group(1), fm.group(2)
+        print("  form:", re.sub(r"\s+", " ", attrs.strip())[:200])
+        for inp in re.findall(r"(?is)<input\b[^>]*>", corpo):
+            nome = re.search(r'name=["\']([^"\']+)', inp)
+            if nome:
+                valor = re.search(r'value=["\']([^"\']*)', inp)
+                tipo_inp = re.search(r'type=["\']([^"\']+)', inp)
+                print(f"    input {nome.group(1)} type={tipo_inp.group(1) if tipo_inp else '?'} value={valor.group(1)[:40] if valor else ''}")
+        for sel in re.finditer(r"(?is)<select\b([^>]*)>(.*?)</select>", corpo):
+            nome = re.search(r'(?:name|id)=["\']([^"\']+)', sel.group(1))
+            opcoes = re.findall(r'(?is)<option[^>]*value=["\']([^"\']*)["\'][^>]*>(.*?)</option>', sel.group(2))
+            print(f"    select {nome.group(1) if nome else '?'}: {len(opcoes)} opções")
+            for v, t in opcoes[:400]:
+                t = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", t)).strip()
+                if len(opcoes) <= 40 or re.search(r"(?i)descoberto|santa maria|df|distrito|paranoa|paranoá", t):
+                    print(f"      {v} = {t}")
+
+
 def diagnosticar(url: str, cliente: httpx.Client) -> None:
     print(f"\n=== {url}")
     try:
@@ -68,6 +88,12 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
         except ValueError:
             pass
     if "html" in tipo:
+        listar_formularios(r.text)
+        for m in re.finditer(r"(?i)descoberto|santa\s*maria|distrito\s*federal", r.text):
+            trecho = re.sub(r"\s+", " ", r.text[max(0, m.start() - 160): m.end() + 160])
+            print("  menção:", trecho)
+        for m in re.findall(r"acessar\([^)]*\)", r.text)[:20]:
+            print("  js:", m)
         links = sorted(set(re.findall(r"""(?:href|src|action)=["']([^"'#]+)["']""", r.text)))
         alvo = [urljoin(str(r.url), l) for l in links if CHAVES.search(l)]
         print(f"  links relevantes ({len(alvo)} de {len(links)}):")

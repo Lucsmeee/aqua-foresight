@@ -34,7 +34,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -e .
+      - run: |
+          pip install -e .
+          sudo apt-get install -y -qq mdbtools > /dev/null
 
       - name: Executar pipeline
         env:

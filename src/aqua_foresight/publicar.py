@@ -26,6 +26,7 @@ from aqua_foresight.config import Settings
 from aqua_foresight.db import init_db, make_engine, make_session_factory
 from aqua_foresight.enso.phases import PontoENOS, classificar_fases
 from aqua_foresight import conversao_adasa
+from aqua_foresight.espanha import etapa_espanha
 from aqua_foresight.ingestion import ana_hidrowebservice as ana
 from aqua_foresight.ingestion import ana_sar
 from aqua_foresight.ingestion import provenance
@@ -214,14 +215,17 @@ def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = T
     volume, st_vol = etapa_volume(raiz / "data" / "manual" / "volume", hoje, obs_sar, meta_sar)
     telemetria, st_ana = etapa_ana(raw_dir) if baixar else ({}, [])
     indicadores = etapa_indicadores(volume, hoje, settings.max_defasagem_observacao_dias)
-    status = {"gerado_em": _agora(), "fontes": [st_enos, st_sar, st_vol, *st_ana]}
+    espanha, st_es = etapa_espanha(raiz, baixar, hoje)
+    status = {"gerado_em": _agora(), "fontes": [st_enos, st_sar, st_vol, *st_ana, *st_es]}
 
     dados = saida / "data"
     dados.mkdir(parents=True, exist_ok=True)
     for nome, conteudo in {"enos.json": enos, "volume.json": volume, "telemetria.json": telemetria,
                            "indicadores.json": indicadores, "status.json": status}.items():
         (dados / nome).write_text(json.dumps(conteudo, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    (dados / "painel.json").write_text(json.dumps(montar_painel(enos, volume, indicadores, status), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    painel = montar_painel(enos, volume, indicadores, status)
+    painel["espanha"] = espanha
+    (dados / "painel.json").write_text(json.dumps(painel, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     for pagina in sorted((raiz / "web").glob("*.html")):
         shutil.copyfile(pagina, saida / pagina.name)
     return status

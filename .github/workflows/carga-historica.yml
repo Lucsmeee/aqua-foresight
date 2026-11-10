@@ -27,11 +27,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e .
+      - run: |
+          pip install -e .
+          sudo apt-get install -y -qq mdbtools > /dev/null
       - name: RONI (NOAA/CPC)
         run: aqua publicar --saida /tmp/site
       - name: SAR/ANA diário
         run: python scripts/carga_historica_sar.py --inicio "${{ github.event.inputs.inicio }}" --max-dias "${{ github.event.inputs.max_dias }}"
+      - name: Espanha · Júcar (MITECO e informes da CHJ)
+        run: |
+          python - <<'PY'
+          from datetime import date
+          from pathlib import Path
+          from aqua_foresight import espanha
+          pasta = Path("data/series")
+          print(espanha.atualizar_miteco(pasta, forcar=True))
+          hoje = date.today()
+          meses = [f"{a % 100:02d}{m:02d}" for a in range(2019, hoje.year + 1) for m in (2, 8)]
+          meses += espanha._meses_anteriores(hoje, 4)
+          print(espanha.atualizar_chj(pasta, sorted(set(meses))))
+          PY
       - name: Versionar dados
         if: always()
         run: |

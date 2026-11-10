@@ -29,7 +29,11 @@ import pytest  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def sem_rede_sar(monkeypatch):
+    from aqua_foresight import espanha
+
     monkeypatch.setattr(ana_sar, "ClienteSAR", SARFalso)
+    monkeypatch.setattr(espanha, "atualizar_miteco", lambda pasta, forcar=False: {"id": "miteco_embalses", "nome": "x", "status": "verificado"})
+    monkeypatch.setattr(espanha, "atualizar_chj", lambda pasta, meses: {"id": "chj_pes", "nome": "x", "status": "verificado"})
 
 
 def _raiz(tmp_path):
@@ -54,7 +58,7 @@ def test_execucao_completa(tmp_path, monkeypatch):
 
     estados = {f["id"]: f["status"] for f in status["fontes"]}
     assert estados == {"noaa_cpc_roni": "verificado", "ana_sar_df": "verificado", "planilhas_volume": "verificado",
-                       "ana_hidrowebservice": "sem_credencial"}
+                       "ana_hidrowebservice": "sem_credencial", "miteco_embalses": "verificado", "chj_pes": "verificado"}
     assert (raiz / "data" / "series" / "sar_df_diario.csv").exists()
 
     d = raiz / "site" / "data"

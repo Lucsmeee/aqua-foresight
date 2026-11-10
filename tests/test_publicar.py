@@ -5,10 +5,31 @@ from datetime import date
 
 from aqua_foresight import publicar
 from aqua_foresight.config import Settings
-from aqua_foresight.ingestion import provenance
+from aqua_foresight.ingestion import ana_sar, provenance
 from tests.conftest import texto_cpc_sintetico
 
 HOJE = date(2026, 11, 10)
+
+
+class SARFalso:
+    """Substitui a API real do SAR nos testes (sem rede). Devolve uma medição por chamada."""
+
+    def __init__(self, *a, **k):
+        pass
+
+    def grafico(self, res):
+        return []
+
+    def medicoes(self, d):
+        return [ana_sar.Registro(d.isoformat(), "santa_maria", 1070.4, 49.9, 61.31, 81.39, "retornaMedicoes")]
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def sem_rede_sar(monkeypatch):
+    monkeypatch.setattr(ana_sar, "ClienteSAR", SARFalso)
 
 
 def _raiz(tmp_path):
@@ -32,7 +53,9 @@ def test_execucao_completa(tmp_path, monkeypatch):
     status = publicar.executar(raiz, raiz / "site", HOJE, baixar=True, settings=Settings())
 
     estados = {f["id"]: f["status"] for f in status["fontes"]}
-    assert estados == {"noaa_cpc_roni": "verificado", "planilhas_volume": "verificado", "ana_hidrowebservice": "sem_credencial"}
+    assert estados == {"noaa_cpc_roni": "verificado", "ana_sar_df": "verificado", "planilhas_volume": "verificado",
+                       "ana_hidrowebservice": "sem_credencial"}
+    assert (raiz / "data" / "series" / "sar_df_diario.csv").exists()
 
     d = raiz / "site" / "data"
     enos = json.loads((d / "enos.json").read_text())
@@ -40,7 +63,8 @@ def test_execucao_completa(tmp_path, monkeypatch):
     assert [p["natureza"] for p in enos["serie"][-2:]] == ["estimado_provisorio"] * 2
 
     vol = json.loads((d / "volume.json").read_text())
-    assert len(vol["obs"]) == 18 and vol["cargas"][0]["validas"] == 18
+    manuais = [o for o in vol["obs"] if o["metodo"] == "planilha_manual"]
+    assert len(manuais) == 18  # planilha manual prevalece sobre o SAR na mesma data
 
     ind = json.loads((d / "indicadores.json").read_text())
     desc = ind["reservatorios"]["descoberto"]["enquadramento"]

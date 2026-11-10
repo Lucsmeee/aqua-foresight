@@ -19,13 +19,15 @@ from __future__ import annotations
 
 import json
 import shutil
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from aqua_foresight.config import Settings
 from aqua_foresight.db import init_db, make_engine, make_session_factory
 from aqua_foresight.enso.phases import PontoENOS, classificar_fases
+from aqua_foresight import conversao_adasa
 from aqua_foresight.ingestion import ana_hidrowebservice as ana
+from aqua_foresight.ingestion import ana_sar
 from aqua_foresight.ingestion import provenance
 from aqua_foresight.ingestion.noaa_cpc import FONTES_CPC, N_ESTACOES_PROVISORIAS, parse_cpc_ascii
 from aqua_foresight.ingestion.volume_arquivo import arquivos_de_volume, processar_arquivo
@@ -83,8 +85,33 @@ def etapa_enos(raw_dir: Path, baixar: bool, timeout: float) -> tuple[dict | None
     return enos, status
 
 
-def etapa_volume(pasta: Path, hoje: date) -> tuple[dict, dict]:
-    cargas, obs = [], {}
+def etapa_sar(raiz: Path, baixar: bool, hoje: date) -> tuple[list[dict], dict, dict]:
+    """Atualiza data/series/sar_df_diario.csv (últimos 5 anos + últimos dias) e converte para a base ADASA."""
+    caminho = raiz / "data" / "series" / "sar_df_diario.csv"
+    serie = ana_sar.ler_serie(caminho)
+    status = {"id": "ana_sar_df", "nome": "ANA · SAR, Distrito Federal (restportal)", "url": "https://www.ana.gov.br/sar/outros-sistemas-hidricos/df",
+              "verificado_em": _agora()}
+    if baixar:
+        try:
+            cliente = ana_sar.ClienteSAR()
+            n = sum(ana_sar.mesclar(serie, cliente.grafico(r)) for r in ana_sar.CODIGOS)
+            for d in (hoje - timedelta(days=k) for k in range(3, -1, -1)):
+                n += ana_sar.mesclar(serie, cliente.medicoes(d))
+            ana_sar.gravar_serie(caminho, serie)
+            status.update(status="verificado", mensagem=f"{n} registro(s) novo(s) ou atualizado(s); {len(serie)} no total")
+        except Exception as exc:  # noqa: BLE001
+            status.update(status="falha", mensagem=f"{type(exc).__name__}: {exc}"[:300])
+    else:
+        status.update(status="nao_verificado", mensagem="execução sem download")
+    obs, meta = conversao_adasa.converter_serie(sorted(serie.values(), key=lambda l: (l["data"], l["reservatorio"])))
+    if not serie:
+        status["mensagem"] = (status.get("mensagem", "") + "; série vazia").strip("; ")
+    return obs, meta, status
+
+
+def etapa_volume(pasta: Path, hoje: date, obs_sar: list[dict] | None = None, meta_sar: dict | None = None) -> tuple[dict, dict]:
+    cargas = []
+    obs = {(o["res"], o["data"]): {**o, "carga": 0} for o in (obs_sar or [])}
     for i, arq in enumerate(arquivos_de_volume(pasta), start=1):
         conteudo = arq.read_bytes()
         r = processar_arquivo(conteudo, arq.name, hoje)
@@ -94,12 +121,17 @@ def etapa_volume(pasta: Path, hoje: date) -> tuple[dict, dict]:
             "duplicadas": r.duplicadas, "mapeamento": r.mapeamento,
         })
         for o in r.obs:  # arquivos posteriores (ordem alfabética) prevalecem na visão vigente
-            obs[(o["res"], o["data"])] = {**o, "carga": i}
-    volume = {"gerado_em": _agora(), "cargas": cargas, "obs": sorted(obs.values(), key=lambda o: (o["res"], o["data"]))}
+            obs[(o["res"], o["data"])] = {**o, "carga": i, "natureza": "observado", "metodo": "planilha_manual"}
+    if obs_sar:
+        cargas.insert(0, {"id": 0, "arquivo": "data/series/sar_df_diario.csv (ANA · SAR)", "sha256": None, "lidas": len(obs_sar),
+                          "validas": len(obs_sar), "rejeitadas": [], "n_rejeitadas": 0, "duplicadas": 0,
+                          "mapeamento": {"metodo": "API restportal do SAR; Descoberto convertido para base ADASA (estimado)"}})
+    volume = {"gerado_em": _agora(), "conversao": meta_sar or {}, "cargas": cargas,
+              "obs": sorted(obs.values(), key=lambda o: (o["res"], o["data"]))}
     status = {
-        "id": "planilhas_volume", "nome": "Planilhas de volume útil (data/manual/volume)", "url": None,
+        "id": "planilhas_volume", "nome": "Volume útil consolidado (SAR + planilhas)", "url": None,
         "verificado_em": _agora(), "status": "verificado" if obs else "sem_dados",
-        "mensagem": f"{len(cargas)} arquivo(s), {len(obs)} observação(ões) válidas",
+        "mensagem": f"{len(cargas) - (1 if obs_sar else 0)} planilha(s) manual(is); {len(obs)} observação(ões) no total",
     }
     return volume, status
 
@@ -142,7 +174,12 @@ def etapa_indicadores(volume: dict, hoje: date, max_defasagem: int) -> dict:
                 continue
             u = serie[-1]
             r = enquadrar(s, res, hoje, u["valor"], "observado", date.fromisoformat(u["data"]), max_defasagem, ator="publicador")
-            out["reservatorios"][res] = {"ultima_observacao": u, "enquadramento": r.as_dict()}
+            d = r.as_dict()
+            if u.get("natureza") == "estimado":
+                d["ressalvas"].insert(0, "Volume útil ESTIMADO na base ADASA a partir da cota publicada pelo SAR/ANA "
+                                         "(conversão calibrada em 6 datas divulgadas pela ADASA; ver conversao_adasa.py). "
+                                         "Confirmar com o valor oficial da ADASA antes de qualquer encaminhamento.")
+            out["reservatorios"][res] = {"ultima_observacao": u, "enquadramento": d}
     return out
 
 
@@ -152,10 +189,11 @@ def executar(raiz: Path, saida: Path, hoje: date | None = None, baixar: bool = T
     raw_dir = raiz / "data" / "raw"
 
     enos, st_enos = etapa_enos(raw_dir, baixar, settings.http_timeout)
-    volume, st_vol = etapa_volume(raiz / "data" / "manual" / "volume", hoje)
+    obs_sar, meta_sar, st_sar = etapa_sar(raiz, baixar, hoje)
+    volume, st_vol = etapa_volume(raiz / "data" / "manual" / "volume", hoje, obs_sar, meta_sar)
     telemetria, st_ana = etapa_ana(raw_dir) if baixar else ({}, [])
     indicadores = etapa_indicadores(volume, hoje, settings.max_defasagem_observacao_dias)
-    status = {"gerado_em": _agora(), "fontes": [st_enos, st_vol, *st_ana]}
+    status = {"gerado_em": _agora(), "fontes": [st_enos, st_sar, st_vol, *st_ana]}
 
     dados = saida / "data"
     dados.mkdir(parents=True, exist_ok=True)

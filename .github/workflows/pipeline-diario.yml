@@ -22,7 +22,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pipeline-diario
+  group: dados
   cancel-in-progress: false
 
 jobs:
@@ -51,12 +51,12 @@ jobs:
         run: |
           git config user.name "aqua-foresight-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/raw
+          git add data/raw data/series
           if git diff --cached --quiet; then
             echo "Sem dados brutos novos."
           else
-            git commit -m "dados: novos brutos $(date -u +%Y-%m-%d)"
-            git push
+            git commit -m "dados: atualização diária $(date -u +%Y-%m-%d)"
+            git pull --rebase origin main && git push
           fi
 
       - uses: actions/configure-pages@v5

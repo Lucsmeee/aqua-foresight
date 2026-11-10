@@ -773,15 +773,17 @@ function renderCards() {
       trTxt = `${fmt(tr.slope, 2)} p.p./dia (n = ${tr.n}). ` + (c.vermelho ? `Mantida a tendência, cruzaria o limiar Vermelho em ${c.vermelho.dias} dias (${fmtData(c.vermelho.data)}).` : c.amarelo ? `Mantida a tendência, cruzaria o limiar Amarelo em ${c.amarelo.dias} dias (${fmtData(c.amarelo.data)}).` : "Sem cruzamento de limiar em 90 dias mantida a tendência.");
     }
     cards.push(el("div", { class: "card eh-" + eq.estado },
-      el("div", { class: "row", style: "justify-content:space-between" }, el("h3", { text: NOMES[r] }), sint ? el("span", { class: "pill synth", text: "SINTÉTICO" }) : el("span", { class: "pill ok", text: "observado" })),
+      el("div", { class: "row", style: "justify-content:space-between" }, el("h3", { text: NOMES[r] }), sint ? el("span", { class: "pill synth", text: "SINTÉTICO" }) : u.natureza === "estimado" ? el("span", { class: "pill warn", text: "estimado" }) : el("span", { class: "pill ok", text: "observado" })),
       el("div", { class: "row", style: "align-items:baseline;gap:14px" }, el("span", { class: "big" }, fmt(u.valor), el("small", { text: " % volume útil" })), el("span", { class: "state " + eq.estado, text: "Estado indicativo: " + eq.estado })),
       el("dl", { class: "kv" },
         el("dt", { text: "Observação" }), el("dd", { text: `${fmtData(u.data)} · ${defas} dia(s) atrás` }),
+        ...(u.natureza === "estimado" && u.valor_sar != null ? [el("dt", { text: "Base SAR/ANA" }), el("dd", { text: `${fmt(u.valor_sar)}% publicado pela ANA; convertido para a base da ADASA` })] : []),
         el("dt", { text: `Limiares de ${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][eq.mes - 1]}` }), el("dd", { text: `Amarelo < ${eq.amarelo}% · Vermelho < ${eq.vermelho}%` }),
         el("dt", { text: "Margem" }), el("dd", { text: `${fmt(eq.margemAmarelo)} p.p. do Amarelo · ${fmt(eq.margemVermelho)} p.p. do Vermelho` }),
         el("dt", { text: "Trajetória (30 d)" }), el("dd", { text: trTxt }),
         el("dt", { text: "Saída do sistema" }), el("dd", { text: sint ? "demonstração, sem efeito" : "encaminhamento para análise humana" }),
       ),
+      u.natureza === "estimado" ? el("p", { class: "small", style: "color:var(--warn)", text: "Volume útil estimado na base da ADASA a partir da cota do SAR/ANA (conversão calibrada em 6 datas divulgadas pela ADASA, erro máximo 0,26 p.p.). Confirme com o valor oficial da ADASA." }) : null,
       ressalvas.length ? el("p", { class: "small", style: "color:var(--warn)", text: ressalvas.join(" ") }) : null,
       el("p", { class: "note", text: "Fundamento: Res. ADASA nº 56/2025, art. 1º (Tabela 1) e art. 2º. Autoridade: ADASA. Vigência e texto integral pendentes de revisão jurídica." })
     ));
@@ -831,7 +833,8 @@ function renderCharts() {
   o.scales.y = { ...o.scales.y, min: 0, max: 100, title: { display: true, text: "% do volume útil", color: css("--muted") } };
   o.plugins.tooltip = { callbacks: { title: it => fmtData(isoOf(it[0].parsed.x)), label: it => `${it.dataset.label}: ${fmt(it.parsed.y)}%` } };
   mkChart("chVol", { type: "line", data: { datasets: [
-    { label: "Volume útil " + NOMES[resAtivo], data: s.map(x => ({ x: tOf(x.data), y: x.valor })), borderColor: css("--accent"), backgroundColor: alfa(css("--accent"), "22"), fill: "origin", borderWidth: 1.8, pointRadius: 0, order: 3 },
+    { label: (s.some(x => x.natureza === "estimado") ? "Volume útil estimado (base ADASA) " : "Volume útil ") + NOMES[resAtivo], data: s.map(x => ({ x: tOf(x.data), y: x.valor })), borderColor: css("--accent"), backgroundColor: alfa(css("--accent"), "22"), fill: "origin", borderWidth: 1.8, pointRadius: 0, order: 3 },
+    ...(s.some(x => x.natureza === "estimado" && x.valor_sar != null) ? [{ label: "Percentual SAR/ANA (outra base)", data: s.filter(x => x.valor_sar != null).map(x => ({ x: tOf(x.data), y: x.valor_sar })), borderColor: css("--muted"), borderWidth: 1, borderDash: [2, 3], pointRadius: 0, fill: false, order: 2 }] : []),
     { label: "Limiar Amarelo (<)", data: limPts("amarelo"), stepped: true, borderColor: css("--eh-amarelo"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
     { label: "Limiar Vermelho (<)", data: limPts("vermelho"), stepped: true, borderColor: css("--eh-vermelho"), borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1 },
   ] }, options: o });
@@ -931,9 +934,9 @@ async function carregarPublicado() {
     enos.serie.forEach(p => state.enos.push({ carga: id, ano: p.ano, estacao: p.estacao, mes: p.mes, valor: p.valor, natureza: p.natureza }));
   }
   if (vol && vol.cargas) {
-    const base = novoId() - 1;
+    const base = novoId();
     vol.cargas.forEach(c => state.cargas.push({ id: base + c.id, arquivo: c.arquivo, tipo: "VOLUME", sha: c.sha256, bytes: 0, lidas: c.lidas, validas: c.validas, rejeitadas: c.rejeitadas || [], duplicadas: c.duplicadas, sintetico: false, em: (vol.gerado_em || "").replace("T", " ").replace("+00:00", " UTC"), automatica: true }));
-    vol.obs.forEach(o => state.vol.push({ carga: base + o.carga, res: o.res, data: o.data, valor: o.valor, natureza: "observado" }));
+    vol.obs.forEach(o => state.vol.push({ carga: base + o.carga, res: o.res, data: o.data, valor: o.valor, natureza: o.natureza || "observado", valor_sar: o.valor_sar, metodo: o.metodo }));
   }
   audit("dados_publicados_carregados", { gerado_em: st.gerado_em, fontes: st.fontes.map(f => `${f.id}:${f.status}`) });
   return true;

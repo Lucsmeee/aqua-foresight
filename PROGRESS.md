@@ -69,3 +69,29 @@
 - Curva cota-volume do Descoberto no SAR mudou entre épocas.
 
 **Validação**: 63 testes; publicação local com dados reais e página renderizada sem erros.
+
+## Execução 1d — 10/11/2026 · v0.3.1 / v0.4.0
+
+**Pedidos:** painel mais convidativo e fácil de entender; comparação com a Espanha para a analogia jurídica e hidrológica.
+
+**Decisão D-02:** bacia espanhola = **Júcar** (Confederación Hidrográfica del Júcar), escolhida pelo usuário.
+
+**Entregue**
+- Painel em linguagem simples (`web/index.html`): frase-resumo, tanques com as linhas de limite, gráfico com faixas coloridas, "mesmo dia em outros anos", termômetro do ENOS. Página técnica movida para `web/tecnico.html`.
+- Fontes espanholas reais:
+  - MITECO, Boletín Hidrológico (`BD-Embalses.zip`, base Access): reserva semanal por reservatório desde 1988 → `data/series/es_jucar_semanal.csv` (demarcação e sistema Alarcón + Contreras + Tous).
+  - CHJ, informe mensal do Plan Especial de Sequía: Índice de Estado de Escasez (IEE) por unidade territorial e global → `data/series/es_jucar_pes_mensal.csv`, com conferências internas das tabelas.
+- Página `web/comparacao.html`: hoje lado a lado em escala comum (Normal/Atenção/Crítico), volumes DF × Júcar, IEE mensal com faixas e quadro das regras (autoridade, norma, indicador, níveis, seca × escassez, declaração formal).
+- Workflow `carga-espanha.yml`; etapa Espanha no pipeline diário.
+
+**Achados**
+- Variação média dentro do ano: Descoberto ≈ 41 p.p.; sistema Alarcón–Contreras–Tous ≈ 17 p.p. (reserva plurianual).
+- Brasil/DF: uma variável (volume %), limiares mês a mês na própria resolução; Vermelho já declara escassez. Espanha/Júcar: índice composto 0–1, faixas fixas, exige persistência, separa seca (natural) de escassez (gestão); situação excepcional declarada por ato do Presidente da CHJ (art. 27 Lei 10/2001).
+- CHJ só publica o informe mais recente em endereço fixo; o MITECO grafa "Tous - La Ribera".
+
+**Validação**: 67 testes; site gerado com dados reais e renderizado no navegador sem erros.
+
+**Limitações**
+- Equivalência de faixas é didática, não jurídica: os sistemas medem coisas diferentes.
+- Série mensal do IEE começa nos informes de 08/2026 e 10/2026; anteriores dependem de arquivo da CHJ.
+- Texto da Orden TED/601/2026 e do PES do Júcar sem revisão jurídica humana.

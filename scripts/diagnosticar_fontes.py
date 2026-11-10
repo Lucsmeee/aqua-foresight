@@ -56,6 +56,23 @@ def resumir_json(dados: object) -> None:
     print("  json:", texto[:1500])
 
 
+def listar_pdf(conteudo: bytes, max_chars: int = 9000) -> None:
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    leitor = PdfReader(BytesIO(conteudo))
+    print(f"  pdf: {len(leitor.pages)} páginas")
+    texto = "\n".join((pg.extract_text() or "") for pg in leitor.pages[:12])
+    for linha in texto.splitlines()[:400]:
+        if linha.strip():
+            print("  |", linha[:220])
+        max_chars -= len(linha)
+        if max_chars < 0:
+            print("  | …")
+            break
+
+
 def listar_chamadas_js(js: str) -> None:
     """Mostra URLs e chamadas de rede encontradas em um script (para achar a API por trás de uma página)."""
     urls = sorted(set(re.findall(r"""["'`](https?://[^"'`\s]+|/[\w\-./]*(?:api|Api|API|servico|Servico|json|Json)[\w\-./]*)["'`]""", js)))
@@ -126,6 +143,17 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
             print("  urls no código da página:")
             for u in extras:
                 print("  ·", u)
+        return
+    if "pdf" in tipo or url.split("?")[0].lower().endswith(".pdf"):
+        listar_pdf(r.content)
+        return
+    if "zip" in tipo or url.split("?")[0].lower().endswith(".zip"):
+        import io
+        import zipfile
+
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            for info in z.infolist()[:50]:
+                print(f"  zip: {info.filename} ({info.file_size} bytes)")
         return
     if "javascript" in tipo or url.split("?")[0].endswith(".js"):
         listar_chamadas_js(r.text)

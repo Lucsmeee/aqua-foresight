@@ -56,6 +56,21 @@ class Registro:
         return {k: ("" if getattr(self, k) is None else getattr(self, k)) for k in CAMPOS}
 
 
+def validar_data_devolvida(pedida: date, devolvida: date, max_dias: int = 400) -> None:
+    """A API devolve a medição do dia ou, se não houver, a PRÓXIMA disponível (comum antes dos anos 2000).
+
+    Bloqueia: dia/mês trocados (sinal de mudança no formato da API), datas anteriores à pedida e saltos
+    maiores que `max_dias`.
+    """
+    if devolvida == pedida:
+        return
+    if pedida.day <= 12 and devolvida == date(pedida.year, pedida.day, pedida.month):
+        raise ValueError(f"API devolveu {devolvida} para {pedida}: dia e mês trocados — formato de data mudou?")
+    atraso = (devolvida - pedida).days
+    if not 0 < atraso <= max_dias:
+        raise ValueError(f"API devolveu {devolvida} para a data pedida {pedida}: diferença inesperada de {atraso} dias")
+
+
 def parse_medicoes(itens: list[dict], data_pedida: date) -> list[Registro]:
     out = []
     for it in itens:
@@ -67,8 +82,7 @@ def parse_medicoes(itens: list[dict], data_pedida: date) -> list[Registro]:
             continue  # sem medição nesta data
         dia, mes, ano = (int(x) for x in d.split("/"))
         devolvida = date(ano, mes, dia)
-        if devolvida != data_pedida:
-            raise ValueError(f"API devolveu {devolvida} para a data pedida {data_pedida}: formato de data mudou?")
+        validar_data_devolvida(data_pedida, devolvida)
         cap, vol = _num(it.get("capacidade")), _num(it.get("volume"))
         pct = _num(it.get("volumeUtil"))
         if pct is None and cap and vol is not None:
@@ -161,8 +175,17 @@ def mesclar(existente: dict, novos: list[Registro]) -> int:
     return alterados
 
 
-def dias_faltantes(existente: dict, inicio: date, fim: date) -> list[date]:
-    tem = {d for d, _ in existente}
+def ler_consultados(caminho: Path) -> set[str]:
+    return set(caminho.read_text().split()) if caminho.exists() else set()
+
+
+def gravar_consultados(caminho: Path, dias: set[str]) -> None:
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    caminho.write_text("\n".join(sorted(dias)) + "\n")
+
+
+def dias_faltantes(existente: dict, inicio: date, fim: date, consultados: set[str] | None = None) -> list[date]:
+    tem = {d for d, _ in existente} | (consultados or set())
     out, d = [], inicio
     while d <= fim:
         if d.isoformat() not in tem:

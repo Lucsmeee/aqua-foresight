@@ -27,8 +27,16 @@ def test_parse_medicoes():
 
 
 def test_data_trocada_e_detectada():
-    with pytest.raises(ValueError, match="formato de data"):
+    with pytest.raises(ValueError, match="trocados"):
         ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 7, 11))
+
+
+def test_proxima_medicao_disponivel_e_aceita_com_a_data_devolvida():
+    # comportamento real: pedido 18/02/1992 → API devolveu 24/02/1992 (sem medição diária na época)
+    regs = ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 11, 1))
+    assert {r.data for r in regs} == {"2017-11-07"}
+    with pytest.raises(ValueError, match="inesperada"):
+        ana_sar.parse_medicoes(MEDICOES_2017_11_07, date(2017, 11, 9))  # data anterior à pedida
 
 
 def test_sem_medicao():

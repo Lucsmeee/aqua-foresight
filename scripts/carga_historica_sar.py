@@ -12,7 +12,7 @@ import argparse
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from aqua_foresight.ingestion import ana_sar  # noqa: E402
 
 SERIE = Path("data/series/sar_df_diario.csv")
+CONSULTADOS = Path("data/series/sar_df_dias_consultados.txt")  # dias já pedidos (inclusive sem medição própria)
 
 
 def main() -> int:
@@ -44,11 +45,13 @@ def main() -> int:
     ana_sar.gravar_serie(SERIE, serie)
 
     # 2) dias restantes, um a um
-    faltam = ana_sar.dias_faltantes(serie, a.inicio, a.fim)[: a.max_dias]
+    consultados = ana_sar.ler_consultados(CONSULTADOS)
+    faltam = ana_sar.dias_faltantes(serie, a.inicio, a.fim, consultados)[: a.max_dias]
     print(f"{len(faltam)} dia(s) a consultar em retornaMedicoes")
-    falhas, sem_dado, t0 = 0, 0, time.time()
-    for ini in range(0, len(faltam), 200):
-        lote = faltam[ini : ini + 200]
+    falhas, sem_dado, t0, feitos = 0, 0, time.time(), 0
+    pendentes = list(faltam)
+    while pendentes:
+        lote, pendentes = pendentes[:200], pendentes[200:]
         with ThreadPoolExecutor(max_workers=min(a.paralelo, 3)) as ex:
             futuros = {ex.submit(cliente.medicoes, d): d for d in lote}
             for fu in as_completed(futuros):
@@ -58,11 +61,22 @@ def main() -> int:
                     if not regs:
                         sem_dado += 1
                     ana_sar.mesclar(serie, regs)
+                    consultados.add(d.isoformat())
+                    # dias entre o pedido e a medição devolvida não têm medição própria
+                    for r in regs:
+                        dev = date.fromisoformat(r.data)
+                        k = d
+                        while k < dev:
+                            consultados.add(k.isoformat())
+                            k += timedelta(days=1)
                 except Exception as exc:  # noqa: BLE001
                     falhas += 1
                     print(f"{d}: FALHA {type(exc).__name__}: {str(exc)[:160]}")
+        feitos += len(lote)
+        pendentes = [d for d in pendentes if d.isoformat() not in consultados]
         ana_sar.gravar_serie(SERIE, serie)
-        print(f"{ini + len(lote)}/{len(faltam)} · {time.time() - t0:.0f}s · sem dado {sem_dado} · falhas {falhas}", flush=True)
+        ana_sar.gravar_consultados(CONSULTADOS, consultados)
+        print(f"{feitos} consultados · {len(pendentes)} pendentes · {time.time() - t0:.0f}s · sem dado {sem_dado} · falhas {falhas}", flush=True)
         if falhas > 50:
             print("muitas falhas; interrompendo para não sobrecarregar o servidor")
             break

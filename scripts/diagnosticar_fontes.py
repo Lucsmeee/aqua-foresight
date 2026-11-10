@@ -49,6 +49,16 @@ def resumir_json(dados: object) -> None:
     print("  json:", texto[:1500])
 
 
+def listar_chamadas_js(js: str) -> None:
+    """Mostra URLs e chamadas de rede encontradas em um script (para achar a API por trás de uma página)."""
+    urls = sorted(set(re.findall(r"""["'`](https?://[^"'`\s]+|/[\w\-./]*(?:api|Api|API|servico|Servico|json|Json)[\w\-./]*)["'`]""", js)))
+    print(f"  URLs no script ({len(urls)}):")
+    for u in urls[:80]:
+        print("  ·", u)
+    for m in list(re.finditer(r"(?:\$\.(?:ajax|get|getJSON|post)|fetch|axios\.\w+|XMLHttpRequest|\.open)\s*\(", js))[:40]:
+        print("  chamada:", re.sub(r"\s+", " ", js[m.start(): m.start() + 260]))
+
+
 def listar_formularios(html: str) -> None:
     for fm in re.finditer(r"(?is)<form\b([^>]*)>(.*?)</form>", html):
         attrs, corpo = fm.group(1), fm.group(2)
@@ -95,6 +105,8 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
         for m in re.findall(r"acessar\([^)]*\)", r.text)[:20]:
             print("  js:", m)
         links = sorted(set(re.findall(r"""(?:href|src|action)=["']([^"'#]+)["']""", r.text)))
+        for s in sorted(set(re.findall(r"""<script[^>]+src=["']([^"']+)["']""", r.text))):
+            print("  script:", urljoin(str(r.url), s))
         alvo = [urljoin(str(r.url), l) for l in links if CHAVES.search(l)]
         print(f"  links relevantes ({len(alvo)} de {len(links)}):")
         for l in alvo[:80]:
@@ -105,6 +117,9 @@ def diagnosticar(url: str, cliente: httpx.Client) -> None:
             print("  urls no código da página:")
             for u in extras:
                 print("  ·", u)
+        return
+    if "javascript" in tipo or url.split("?")[0].endswith(".js"):
+        listar_chamadas_js(r.text)
         return
     linhas = r.text.splitlines()
     print("  início:", " | ".join(linhas[:4]))

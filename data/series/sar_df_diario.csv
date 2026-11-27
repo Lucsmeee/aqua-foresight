@@ -26531,3 +26531,5 @@ data,reservatorio,cota_m,volume_hm3,capacidade_hm3,pct_sar,endpoint
 2026-11-25,santa_maria,1070.35,49.22,61.31,80.28,retornaMedicoes
 2026-11-26,descoberto,1028.45,68.06,85.99,79.15,retornaMedicoes
 2026-11-26,santa_maria,1070.36,49.29,61.31,80.39,retornaMedicoes
+2026-11-27,descoberto,1028.46,68.17,85.99,79.28,retornaMedicoes
+2026-11-27,santa_maria,1070.32,49.01,61.31,79.94,retornaMedicoes
